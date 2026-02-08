@@ -8,6 +8,12 @@ defmodule Kaizen.Engine do
 
   require Logger
 
+  # Logger helper - using Logger.warning (Elixir 1.11+)
+  # For cross-version compatibility with older Elixir, this could be made conditional
+  defp log_warning(msg, meta) do
+    Logger.warning(msg, meta)
+  end
+
   @doc """
   Run an evolutionary algorithm with the given configuration.
 
@@ -180,12 +186,12 @@ defmodule Kaizen.Engine do
               {entity, score}
 
             {:error, reason} ->
-              Logger.warning("Fitness evaluation failed", error: reason)
+              log_warning("Fitness evaluation failed", error: reason)
               {entity, 0.0}
           end
         end,
         max_concurrency: config.max_concurrency,
-        timeout: :timer.seconds(30),
+        timeout: config.evaluation_timeout,
         on_timeout: :kill_task
       )
       |> Enum.reduce(%{}, fn
@@ -193,7 +199,7 @@ defmodule Kaizen.Engine do
           Map.put(acc, entity, score)
 
         {:exit, reason}, acc ->
-          Logger.warning("Fitness evaluation timed out", reason: reason)
+          log_warning("Fitness evaluation timed out", reason: reason)
           acc
       end)
 
@@ -226,7 +232,12 @@ defmodule Kaizen.Engine do
     )
 
     # Select parents - need pairs for crossover
-    all_parents = selection_module.select(population, scores, offspring_count * 2, [])
+    selection_opts = [
+      tournament_size: config.tournament_size,
+      pressure: config.selection_pressure
+    ]
+
+    all_parents = selection_module.select(population, scores, offspring_count * 2, selection_opts)
 
     # Group parents into pairs and apply crossover/mutation
     offspring =
@@ -246,45 +257,38 @@ defmodule Kaizen.Engine do
           children = [child1, child2]
 
           Enum.map(children, fn child ->
-            if :rand.uniform() < config.mutation_rate do
-              mutation_opts = [
-                rate: config.mutation_rate,
-                strength: mutation_module.mutation_strength(state.generation),
-                best_fitness: state.best_score || 0.0
-              ]
-
-              case mutation_module.mutate(child, mutation_opts) do
-                {:ok, mutated} ->
-                  mutated
-
-                {:error, reason} ->
-                  Logger.warning("Mutation failed", error: reason)
-                  child
-              end
-            else
-              child
-            end
-          end)
-
-        [single_parent] ->
-          # Handle odd number case - just mutate the single parent
-          if :rand.uniform() < config.mutation_rate do
+            # Call mutate unconditionally - module owns probability logic
             mutation_opts = [
               rate: config.mutation_rate,
               strength: mutation_module.mutation_strength(state.generation),
               best_fitness: state.best_score || 0.0
             ]
 
-            case mutation_module.mutate(single_parent, mutation_opts) do
+            case mutation_module.mutate(child, mutation_opts) do
               {:ok, mutated} ->
-                [mutated]
+                mutated
 
               {:error, reason} ->
-                Logger.warning("Mutation failed", error: reason)
-                [single_parent]
+                log_warning("Mutation failed", error: reason)
+                child
             end
-          else
-            [single_parent]
+          end)
+
+        [single_parent] ->
+          # Handle odd number case - just mutate the single parent
+          mutation_opts = [
+            rate: config.mutation_rate,
+            strength: mutation_module.mutation_strength(state.generation),
+            best_fitness: state.best_score || 0.0
+          ]
+
+          case mutation_module.mutate(single_parent, mutation_opts) do
+            {:ok, mutated} ->
+              [mutated]
+
+            {:error, reason} ->
+              log_warning("Mutation failed", error: reason)
+              [single_parent]
           end
       end)
       # Ensure we don't exceed desired offspring count

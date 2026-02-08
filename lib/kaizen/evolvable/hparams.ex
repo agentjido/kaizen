@@ -10,18 +10,21 @@ defmodule Kaizen.Evolvable.HParams do
 
   ## Schema Format
 
+  Bounds can be specified as either ranges (`min..max`) or tuples (`{min, max}`).
+  Note: Ranges only work for integer bounds (Elixir requirement). Use tuples for float bounds.
+
       %{
-        learning_rate: {:float, 1.0e-5..1.0e-1, :log},
-        hidden_layers: {:list, {:int, 16..256}, length: 1..3},
-        dropout_rate: {:float, 0.0..0.6, :linear},
+        learning_rate: {:float, {1.0e-5, 1.0e-1}, :log},
+        hidden_layers: {:list, {:int, 16..256}, length: {1, 3}},
+        dropout_rate: {:float, {0.0, 0.6}, :linear},
         activation: {:enum, [:relu, :tanh, :gelu]},
         batch_size: {:enum, [16, 32, 64, 128]}
       }
 
   ## Usage
 
-      schema = %{learning_rate: {:float, 0.001..0.1, :log}}
-      {:ok, hparams} = Kaizen.Evolvable.HParams.new(schema)
+      schema = %{learning_rate: {:float, {0.001, 0.1}, :log}}
+      hparams = Kaizen.Evolvable.HParams.new(schema)
       # => %{learning_rate: 0.0032}
   """
 
@@ -37,17 +40,23 @@ defmodule Kaizen.Evolvable.HParams do
 
   def new(_), do: {:error, "HParams requires a schema map"}
 
-  defp random_value({:float, {min, max}, :linear}) do
+  defp normalize_bounds(min..max//_), do: {min, max}
+  defp normalize_bounds({min, max}), do: {min, max}
+
+  defp random_value({:float, bounds, :linear}) do
+    {min, max} = normalize_bounds(bounds)
     min + :rand.uniform() * (max - min)
   end
 
-  defp random_value({:float, {min, max}, :log}) do
+  defp random_value({:float, bounds, :log}) do
+    {min, max} = normalize_bounds(bounds)
     log_min = :math.log(min)
     log_max = :math.log(max)
     :math.exp(log_min + :rand.uniform() * (log_max - log_min))
   end
 
-  defp random_value({:int, {min, max}}) do
+  defp random_value({:int, bounds}) do
+    {min, max} = normalize_bounds(bounds)
     min + :rand.uniform(max - min + 1) - 1
   end
 

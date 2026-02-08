@@ -72,19 +72,26 @@ defmodule TestMutation do
 
   @impl true
   def mutate(entity, opts \\ []) do
+    rate = Keyword.get(opts, :rate, 1.0)
+    
     if Keyword.get(opts, :return_error) do
       {:error, :mutation_failed}
     else
-      mutated =
-        cond do
-          is_binary(entity) -> entity <> "_mutated"
-          is_integer(entity) -> entity + 1
-          is_float(entity) -> entity + 1.0
-          is_list(entity) -> [0 | entity]
-          true -> entity
-        end
+      # Respect mutation rate
+      if :rand.uniform() < rate do
+        mutated =
+          cond do
+            is_binary(entity) -> entity <> "_mutated"
+            is_integer(entity) -> entity + 1
+            is_float(entity) -> entity + 1.0
+            is_list(entity) -> [0 | entity]
+            true -> entity
+          end
 
-      {:ok, mutated}
+        {:ok, mutated}
+      else
+        {:ok, entity}
+      end
     end
   end
 

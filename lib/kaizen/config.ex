@@ -6,6 +6,7 @@ defmodule Kaizen.Config do
   """
 
   use TypedStruct
+  import Bitwise
 
   typedstruct do
     @typedoc "Configuration for evolutionary algorithms"
@@ -23,6 +24,9 @@ defmodule Kaizen.Config do
     field(:checkpoint_interval, pos_integer() | nil, default: nil)
     field(:metrics_enabled, boolean(), default: true)
     field(:random_seed, integer() | nil, default: nil)
+    field(:tournament_size, pos_integer(), default: 2)
+    field(:selection_pressure, float(), default: 1.0)
+    field(:evaluation_timeout, pos_integer() | :infinity, default: 30_000)
   end
 
   @config_schema [
@@ -39,7 +43,12 @@ defmodule Kaizen.Config do
     mutation_rate: [
       type: :float,
       default: 0.1,
-      doc: "Probability of mutation for each entity"
+      doc: """
+      Mutation rate passed to the mutation module (interpretation varies by module).
+      For Binary/Text/HParams mutations: per-gene probability.
+      For Permutation mutations: per-operation probability.
+      The mutation module controls its own probability logic using this value.
+      """
     ],
     crossover_rate: [
       type: :float,
@@ -90,6 +99,21 @@ defmodule Kaizen.Config do
       type: {:or, [:integer, nil]},
       default: nil,
       doc: "Random seed for reproducible results"
+    ],
+    tournament_size: [
+      type: :pos_integer,
+      default: 2,
+      doc: "Number of entities in each tournament (passed to selection module)"
+    ],
+    selection_pressure: [
+      type: :float,
+      default: 1.0,
+      doc: "Selection pressure multiplier (passed to selection module)"
+    ],
+    evaluation_timeout: [
+      type: {:or, [:pos_integer, {:in, [:infinity]}]},
+      default: 30_000,
+      doc: "Timeout in milliseconds for fitness evaluation (default: 30 seconds)"
     ]
   ]
 
@@ -149,18 +173,26 @@ defmodule Kaizen.Config do
 
   @doc """
   Initialize random seed if configured.
+
+  Uses explicit :exs1024 algorithm with deterministic seed tuple for reproducibility
+  across OTP versions.
   """
   @spec init_random_seed(t()) :: :ok
   def init_random_seed(%__MODULE__{random_seed: nil}), do: :ok
 
   @spec init_random_seed(t()) :: :ok
-  def init_random_seed(%__MODULE__{random_seed: seed}) do
-    :rand.seed(:default, seed)
+  def init_random_seed(%__MODULE__{random_seed: seed}) when is_integer(seed) do
+    :rand.seed(:exs1024, {seed, seed <<< 1, seed <<< 2})
     :ok
   end
 
   # Private helper to validate rate parameters
-  defp validate_rates(%__MODULE__{mutation_rate: mr, crossover_rate: cr, elitism_rate: er}) do
+  defp validate_rates(%__MODULE__{
+         mutation_rate: mr,
+         crossover_rate: cr,
+         elitism_rate: er,
+         selection_pressure: sp
+       }) do
     cond do
       mr < 0.0 or mr > 1.0 ->
         {:error, "mutation_rate must be between 0.0 and 1.0, got: #{mr}"}
@@ -170,6 +202,9 @@ defmodule Kaizen.Config do
 
       er < 0.0 or er > 1.0 ->
         {:error, "elitism_rate must be between 0.0 and 1.0, got: #{er}"}
+
+      sp < 0.0 ->
+        {:error, "selection_pressure must be non-negative, got: #{sp}"}
 
       true ->
         :ok

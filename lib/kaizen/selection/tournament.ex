@@ -42,11 +42,20 @@ defmodule Kaizen.Selection.Tournament do
     # Select random candidates for tournament
     candidates = Enum.take_random(population, min(tournament_size, length(population)))
 
+    # Get candidate scores and normalize
+    candidate_scores = Enum.map(candidates, fn c -> Map.get(scores, c, 0.0) end)
+    min_score = Enum.min(candidate_scores)
+    max_score = Enum.max(candidate_scores)
+    
     # Find the best candidate based on fitness scores
     candidates
     |> Enum.map(fn candidate ->
       score = Map.get(scores, candidate, 0.0)
-      adjusted_score = :math.pow(score, pressure)
+      # Normalize to [0, 1] range before applying pressure
+      normalized = if max_score == min_score, 
+        do: 1.0,
+        else: (score - min_score) / (max_score - min_score)
+      adjusted_score = :math.pow(normalized, pressure)
       {candidate, adjusted_score}
     end)
     |> Enum.max_by(fn {_candidate, score} -> score end)

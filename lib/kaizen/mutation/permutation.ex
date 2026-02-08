@@ -84,9 +84,9 @@ defmodule Kaizen.Mutation.Permutation do
       if start_idx == end_idx do
         {:ok, permutation}
       else
-        before = Enum.slice(permutation, 0..(start_idx - 1))
-        segment = Enum.slice(permutation, start_idx..end_idx) |> Enum.reverse()
-        after_segment = Enum.slice(permutation, (end_idx + 1)..(n - 1))
+        before = Enum.slice(permutation, 0, start_idx)
+        segment = Enum.slice(permutation, start_idx, end_idx - start_idx + 1) |> Enum.reverse()
+        after_segment = Enum.slice(permutation, end_idx + 1, n - end_idx - 1)
 
         {:ok, before ++ segment ++ after_segment}
       end

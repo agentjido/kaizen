@@ -5,6 +5,9 @@ defmodule Kaizen.Crossover.MapUniform do
   Selects each key's value from one of the parents randomly.
   For numeric lists, performs one-point crossover on the list.
 
+  Handles asymmetric parent keys by taking the union of all keys.
+  Missing keys are treated as nil during crossover.
+
   ## Example
 
       parent1 = %{lr: 0.01, layers: [128, 64], act: :relu}
@@ -18,8 +21,15 @@ defmodule Kaizen.Crossover.MapUniform do
 
   @impl true
   def crossover(parent1, parent2, _config) when is_map(parent1) and is_map(parent2) do
+    # Build union of keys from both parents
+    keys =
+      MapSet.union(
+        MapSet.new(Map.keys(parent1)),
+        MapSet.new(Map.keys(parent2))
+      )
+
     child1 =
-      Map.keys(parent1)
+      keys
       |> Enum.map(fn key ->
         val1 = Map.get(parent1, key)
         val2 = Map.get(parent2, key)
@@ -28,7 +38,7 @@ defmodule Kaizen.Crossover.MapUniform do
       |> Map.new()
 
     child2 =
-      Map.keys(parent2)
+      keys
       |> Enum.map(fn key ->
         val1 = Map.get(parent1, key)
         val2 = Map.get(parent2, key)
@@ -54,6 +64,10 @@ defmodule Kaizen.Crossover.MapUniform do
       Enum.take(list1, point) ++ Enum.drop(list2, point)
     end
   end
+
+  # Handle nil values (when key exists in only one parent)
+  defp crossover_value(nil, val2), do: val2
+  defp crossover_value(val1, nil), do: val1
 
   # Uniform selection for scalars
   defp crossover_value(val1, val2) do
