@@ -34,36 +34,16 @@ defmodule Kaizen.Crossover.PMX do
       # Return parents unchanged if invalid
       {parent1, parent2}
     else
-      # Select two random crossover points (ensure cut2 > cut1)
+      # Select two random crossover points
       point1 = :rand.uniform(n) - 1
-      point2 = :rand.uniform(n - 1) - 1
-      point2 = if point2 >= point1, do: point2 + 1, else: point2
-      {cut1, cut2} = if point1 < point2, do: {point1, point2}, else: {point2, point1}
+      point2 = :rand.uniform(n) - 1
+      {cut1, cut2} = if point1 <= point2, do: {point1, point2}, else: {point2, point1}
 
-      # Copy segment from parent1 to child
-      segment = Enum.slice(parent1, cut1, cut2 - cut1)
+      # Create both children
+      child1 = pmx_child(parent1, parent2, cut1, cut2)
+      child2 = pmx_child(parent2, parent1, cut1, cut2)
 
-      # Create mapping from parent2's segment to parent1's segment
-      parent2_segment = Enum.slice(parent2, cut1, cut2 - cut1)
-      mapping = Enum.zip(parent2_segment, segment) |> Map.new()
-
-      # Fill child: segment positions get parent1 values, rest get mapped parent2 values
-      child =
-        Enum.with_index(parent2)
-        |> Enum.map(fn {value, idx} ->
-          cond do
-            idx >= cut1 and idx < cut2 ->
-              # Inside segment: use parent1 value
-              Enum.at(parent1, idx)
-
-            true ->
-              # Outside segment: use parent2 value, mapped if needed
-              map_value(value, mapping, segment)
-          end
-        end)
-
-      # PMX returns single child; return child with swapped parent as second child
-      {child, parent2}
+      {child1, child2}
     end
   end
 
@@ -72,24 +52,66 @@ defmodule Kaizen.Crossover.PMX do
     {parent1, parent2}
   end
 
-  # Recursively map a value if it exists in the segment
-  # Add a visited set to prevent infinite loops
-  defp map_value(value, mapping, segment) do
-    map_value(value, mapping, segment, MapSet.new())
+  # Create a single child using PMX
+  defp pmx_child(p1, p2, cut1, cut2) do
+    n = length(p1)
+    
+    # Start with parent2 as base
+    child = List.to_tuple(p2)
+    
+    # Copy segment from parent1 to child
+    child =
+      Enum.reduce(cut1..cut2, child, fn i, acc ->
+        put_elem(acc, i, Enum.at(p1, i))
+      end)
+    
+    # Build mapping: p1[i] -> p2[i] for segment
+    # This maps segment values in p1 to their corresponding p2 values
+    mapping =
+      cut1..cut2
+      |> Enum.map(fn i -> {Enum.at(p1, i), Enum.at(p2, i)} end)
+      |> Map.new()
+    
+    # Fix conflicts outside segment
+    child =
+      Enum.reduce(0..(n - 1), child, fn i, acc ->
+        if i >= cut1 and i <= cut2 do
+          # Inside segment, already set
+          acc
+        else
+          # Outside segment, check for conflicts
+          # The child currently has p2's value at position i
+          # We need to check if this value conflicts with values from p1's segment
+          p2_value = elem(acc, i)
+
+          if Map.has_key?(mapping, p2_value) do
+            # Value conflicts with segment, follow mapping chain
+            new_value = follow_mapping(p2_value, mapping)
+            put_elem(acc, i, new_value)
+          else
+            # No conflict
+            acc
+          end
+        end
+      end)
+    
+    Tuple.to_list(child)
   end
 
-  defp map_value(value, mapping, segment, visited) do
-    if value in segment do
-      if MapSet.member?(visited, value) do
-        # Cycle detected, return value as-is
+  # Follow mapping chain to find non-conflicting value
+  defp follow_mapping(value, mapping) do
+    case Map.get(mapping, value) do
+      nil ->
+        # No mapping found, return value
         value
-      else
-        # Value is in segment, follow mapping
-        mapped = Map.get(mapping, value, value)
-        map_value(mapped, mapping, segment, MapSet.put(visited, value))
-      end
-    else
-      value
+      
+      mapped_value ->
+        # Check if mapped value is also a key (creates chain)
+        if Map.has_key?(mapping, mapped_value) do
+          follow_mapping(mapped_value, mapping)
+        else
+          mapped_value
+        end
     end
   end
 end
