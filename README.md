@@ -1,4 +1,4 @@
-# Kaizen
+# Jido.Evolve
 
 Evolutionary algorithms for Elixir. Evolve strings, configs, maps, or any data structure toward higher fitness. Stream-based, parallel, pluggable.
 
@@ -7,7 +7,7 @@ Evolutionary algorithms for Elixir. Evolve strings, configs, maps, or any data s
 ```elixir
 def deps do
   [
-    {:kaizen, "~> 0.1.0"}
+    {:jido_evolve, "~> 0.1.0"}
   ]
 end
 ```
@@ -16,11 +16,11 @@ end
 
 ```elixir
 defmodule MyFitness do
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
   def evaluate(entity, _ctx), do: {:ok, String.length(entity)}
 end
 
-config = Kaizen.Config.new!(
+config = Jido.Evolve.Config.new!(
   population_size: 50,
   generations: 100,
   mutation_rate: 0.1,
@@ -30,11 +30,11 @@ config = Kaizen.Config.new!(
 initial = ["random", "strings", "here"]
 
 final_state =
-  Kaizen.evolve(
+  Jido.Evolve.evolve(
     initial_population: initial,
     config: config,
     fitness: MyFitness,
-    evolvable: Kaizen.Evolvable.String
+    evolvable: Jido.Evolve.Evolvable.String
   )
   |> Enum.reduce(fn _prev, state -> state end)
 
@@ -43,7 +43,7 @@ IO.puts("Best: #{final_state.best_entity} (#{final_state.best_score})")
 
 ## How It Works
 
-`Kaizen.evolve/1` returns a lazy `Stream` of `Kaizen.State` (one per generation).
+`Jido.Evolve.evolve/1` returns a lazy `Stream` of `Jido.Evolve.State` (one per generation).
 
 Each generation:
 1. **Evaluate** fitness (parallel via `Task.async_stream`)
@@ -54,24 +54,24 @@ Each generation:
 6. **Check termination** criteria
 
 Pluggable behaviors:
-- `Kaizen.Fitness` — score entities
-- `Kaizen.Mutation` — mutate entities
-- `Kaizen.Selection` — select parents
-- `Kaizen.Crossover` — combine entities
-- `Kaizen.Evolvable` (protocol) — representation + similarity
+- `Jido.Evolve.Fitness` — score entities
+- `Jido.Evolve.Mutation` — mutate entities
+- `Jido.Evolve.Selection` — select parents
+- `Jido.Evolve.Crossover` — combine entities
+- `Jido.Evolve.Evolvable` (protocol) — representation + similarity
 
 ## Configure
 
 ```elixir
-Kaizen.Config.new!(
+Jido.Evolve.Config.new!(
   population_size: 100,           # Population size
   generations: 1000,              # Max generations
   mutation_rate: 0.1,             # Mutation probability
   crossover_rate: 0.7,            # Crossover probability
   elitism_rate: 0.05,             # Top % preserved unchanged
-  selection_strategy: Kaizen.Selection.Tournament,
-  mutation_strategy: Kaizen.Mutation.Text,
-  crossover_strategy: Kaizen.Crossover.String,
+  selection_strategy: Jido.Evolve.Selection.Tournament,
+  mutation_strategy: Jido.Evolve.Mutation.Text,
+  crossover_strategy: Jido.Evolve.Crossover.String,
   termination_criteria: [target_fitness: 100],
   max_concurrency: System.schedulers_online(),
   random_seed: 1234               # For deterministic runs
@@ -84,7 +84,7 @@ Kaizen.Config.new!(
 
 ```elixir
 defmodule MyFitness do
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
   
   def evaluate(entity, ctx), do: {:ok, my_score(entity, ctx)}
   
@@ -101,7 +101,7 @@ end
 ### Custom Evolvable
 
 ```elixir
-defimpl Kaizen.Evolvable, for: MyType do
+defimpl Jido.Evolve.Evolvable, for: MyType do
   def to_genome(t), do: normalize(t)
   def from_genome(_t, genome), do: denormalize(genome)
   def similarity(a, b), do: distance_metric(a, b)
@@ -112,7 +112,7 @@ end
 
 ```elixir
 defmodule MyMutator do
-  @behaviour Kaizen.Mutation
+  @behaviour Jido.Evolve.Mutation
   
   def mutate(entity, _opts), do: {:ok, mutated(entity)}
 end
@@ -126,7 +126,7 @@ Wire via config: `mutation_strategy: MyMutator`
 
 **Determinism**: Set `random_seed` and ensure `evaluate/2` is pure.
 
-**Telemetry**: Emits `:kaizen` events for evolution, generations, and evaluations.
+**Telemetry**: Emits `:jido_evolve` events for evolution, generations, and evaluations.
 
 ## Examples & Docs
 

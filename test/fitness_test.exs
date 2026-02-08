@@ -1,9 +1,9 @@
-defmodule Kaizen.FitnessTest do
+defmodule Jido.Evolve.FitnessTest do
   use ExUnit.Case
-  doctest Kaizen.Fitness
+  doctest Jido.Evolve.Fitness
 
   defmodule SimpleFitness do
-    use Kaizen.Fitness
+    use Jido.Evolve.Fitness
 
     def evaluate(number, _context) when is_number(number) do
       {:ok, number * 1.0}
@@ -15,7 +15,7 @@ defmodule Kaizen.FitnessTest do
   end
 
   defmodule MetadataFitness do
-    use Kaizen.Fitness
+    use Jido.Evolve.Fitness
 
     def evaluate(string, _context) when is_binary(string) do
       score = String.length(string) / 10.0
@@ -24,7 +24,7 @@ defmodule Kaizen.FitnessTest do
   end
 
   defmodule MixedFitness do
-    use Kaizen.Fitness
+    use Jido.Evolve.Fitness
 
     def evaluate(entity, context) do
       case entity do
@@ -36,7 +36,7 @@ defmodule Kaizen.FitnessTest do
   end
 
   defmodule InvalidFitness do
-    use Kaizen.Fitness
+    use Jido.Evolve.Fitness
 
     def evaluate(_entity, %{return: return_value}) do
       return_value
@@ -184,7 +184,7 @@ defmodule Kaizen.FitnessTest do
 
     test "batch_evaluate is overridable" do
       defmodule CustomBatchFitness do
-        use Kaizen.Fitness
+        use Jido.Evolve.Fitness
 
         def evaluate(n, _context), do: {:ok, n * 1.0}
 
@@ -197,8 +197,8 @@ defmodule Kaizen.FitnessTest do
       assert results == [{1, 100.0}, {2, 100.0}, {3, 100.0}]
     end
 
-    test "sets @behaviour Kaizen.Fitness" do
-      assert SimpleFitness.__info__(:attributes)[:behaviour] == [Kaizen.Fitness]
+    test "sets @behaviour Jido.Evolve.Fitness" do
+      assert SimpleFitness.__info__(:attributes)[:behaviour] == [Jido.Evolve.Fitness]
     end
   end
 
@@ -256,7 +256,7 @@ defmodule Kaizen.FitnessTest do
 
     test "handles float precision" do
       defmodule PrecisionFitness do
-        use Kaizen.Fitness
+        use Jido.Evolve.Fitness
 
         def evaluate(n, _context), do: {:ok, n / 3.0}
       end

@@ -3,7 +3,7 @@
 ## Completed Tasks
 
 ### 1. Fixed HParams documentation/schema consistency ✅
-**File:** `lib/kaizen/evolvable/hparams.ex`
+**File:** `lib/jido_evolve/evolvable/hparams.ex`
 
 **Changes:**
 - Added `normalize_bounds/1` helper function to accept both range (`min..max`) and tuple (`{min, max}`) formats
@@ -14,7 +14,7 @@
 **Note:** Ranges require integers in Elixir, so float bounds must use tuple format `{min, max}`.
 
 ### 2. Fixed Map uniform crossover for asymmetric keys ✅
-**File:** `lib/kaizen/crossover/map_uniform.ex`
+**File:** `lib/jido_evolve/crossover/map_uniform.ex`
 
 **Changes:**
 - Modified `crossover/3` to build union of keys from both parents using `MapSet.union`
@@ -26,8 +26,8 @@
 
 ### 3. Added evaluation timeout configuration ✅
 **Files:** 
-- `lib/kaizen/config.ex`
-- `lib/kaizen/engine.ex`
+- `lib/jido_evolve/config.ex`
+- `lib/jido_evolve/engine.ex`
 
 **Changes:**
 - Added `evaluation_timeout` field to Config (default: 30,000ms)
@@ -42,7 +42,7 @@ config = Config.new!(evaluation_timeout: :infinity)  # No timeout
 ```
 
 ### 4. Logger API compatibility ✅
-**File:** `lib/kaizen/engine.ex`
+**File:** `lib/jido_evolve/engine.ex`
 
 **Changes:**
 - Added `log_warning/2` helper function
@@ -54,9 +54,9 @@ config = Config.new!(evaluation_timeout: :infinity)  # No timeout
 
 ### 5. Comprehensive test coverage ✅
 **New test files:**
-- `test/kaizen/evolvable/hparams_test.exs` (17 tests)
-- `test/kaizen/crossover/map_uniform_test.exs` (15 tests)
-- `test/kaizen/evaluation_timeout_test.exs` (10 tests)
+- `test/jido_evolve/evolvable/hparams_test.exs` (17 tests)
+- `test/jido_evolve/crossover/map_uniform_test.exs` (15 tests)
+- `test/jido_evolve/evaluation_timeout_test.exs` (10 tests)
 
 **Test coverage:**
 - HParams: Both tuple and range forms for int bounds
@@ -70,9 +70,9 @@ config = Config.new!(evaluation_timeout: :infinity)  # No timeout
 
 All Phase 5 tests passing:
 ```
-mix test test/kaizen/evolvable/hparams_test.exs \
-         test/kaizen/crossover/map_uniform_test.exs \
-         test/kaizen/evaluation_timeout_test.exs
+mix test test/jido_evolve/evolvable/hparams_test.exs \
+         test/jido_evolve/crossover/map_uniform_test.exs \
+         test/jido_evolve/evaluation_timeout_test.exs
 
 42 tests, 0 failures
 ```
@@ -98,7 +98,7 @@ mix test test/kaizen/evolvable/hparams_test.exs \
 
 1. **Range limitations**: Elixir ranges require integer bounds, so float parameters must use tuple format `{min, max}`. Documentation updated to reflect this.
 
-2. **Pre-existing issues**: Some dialyzer warnings exist in `lib/kaizen/crossover/pmx.ex` that are unrelated to Phase 5 changes. These existed before our changes.
+2. **Pre-existing issues**: Some dialyzer warnings exist in `lib/jido_evolve/crossover/pmx.ex` that are unrelated to Phase 5 changes. These existed before our changes.
 
 3. **Logger compatibility**: Simplified to use `Logger.warning` directly since we're targeting Elixir 1.18+. A conditional implementation using `function_exported?/3` could be added if older version support is needed.
 
@@ -106,13 +106,13 @@ mix test test/kaizen/evolvable/hparams_test.exs \
 
 ## Files Modified
 
-- `lib/kaizen/config.ex` - Added evaluation_timeout field
-- `lib/kaizen/engine.ex` - Added log_warning helper, use configurable timeout
-- `lib/kaizen/evolvable/hparams.ex` - Support both range and tuple bounds
-- `lib/kaizen/crossover/map_uniform.ex` - Handle asymmetric keys
+- `lib/jido_evolve/config.ex` - Added evaluation_timeout field
+- `lib/jido_evolve/engine.ex` - Added log_warning helper, use configurable timeout
+- `lib/jido_evolve/evolvable/hparams.ex` - Support both range and tuple bounds
+- `lib/jido_evolve/crossover/map_uniform.ex` - Handle asymmetric keys
 
 ## Files Created
 
-- `test/kaizen/evolvable/hparams_test.exs`
-- `test/kaizen/crossover/map_uniform_test.exs`
-- `test/kaizen/evaluation_timeout_test.exs`
+- `test/jido_evolve/evolvable/hparams_test.exs`
+- `test/jido_evolve/crossover/map_uniform_test.exs`
+- `test/jido_evolve/evaluation_timeout_test.exs`

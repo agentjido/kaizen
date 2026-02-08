@@ -8,7 +8,7 @@ Design a composable, protocol-based evolutionary system that can evolve any data
 
 ### 1.1 Evolvable Protocol
 ```elixir
-defprotocol Kaizen.Evolvable do
+defprotocol Jido.Evolve.Evolvable do
   @doc "Convert to a normalized representation for evolution"
   def to_genome(entity)
   
@@ -28,7 +28,7 @@ end
 
 ### 1.2 Fitness Behaviour
 ```elixir
-defmodule Kaizen.Fitness do
+defmodule Jido.Evolve.Fitness do
   @callback evaluate(entity :: any(), context :: map()) :: 
     {:ok, float()} | {:ok, %{score: float(), metadata: map()}}
   

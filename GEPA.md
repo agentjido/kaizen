@@ -1,4 +1,4 @@
-# GEPA: Genetic-Evolutionary Prompt Architecture with Kaizen
+# GEPA: Genetic-Evolutionary Prompt Architecture with Jido.Evolve
 
 *Automatic prompt optimization through evolutionary algorithms and reflective learning*
 
@@ -6,7 +6,7 @@
 
 GEPA (Genetic-Evolutionary Prompt Architecture) is a revolutionary approach to prompt optimization that uses **language itself as a learning signal**. Instead of relying on scalar rewards or manual tweaking, GEPA evolves better prompts by reflecting on LLM execution traces and using evolutionary search to discover optimal instruction patterns.
 
-This document shows how to implement GEPA-style prompt optimization using Kaizen's evolutionary framework combined with ReqLLM for LLM interactions.
+This document shows how to implement GEPA-style prompt optimization using Jido.Evolve's evolutionary framework combined with ReqLLM for LLM interactions.
 
 ## Core Concepts
 
@@ -26,7 +26,7 @@ success_fn = fn response ->
 end
 
 # Let GEPA evolve the perfect prompt
-optimal_prompt = Kaizen.PromptEvolution.optimize(
+optimal_prompt = Jido.Evolve.PromptEvolution.optimize(
   initial_prompt: "Extract the key information from this email",
   task_examples: load_test_emails(),
   success_function: success_fn,
@@ -44,7 +44,7 @@ IO.puts "📊 Success rate: #{optimal_prompt.score * 100}%"
 ### 1. Prompt Representation
 
 ```elixir
-defmodule Kaizen.Prompt do
+defmodule Jido.Evolve.Prompt do
   @moduledoc """
   Represents an evolvable prompt with metadata and performance tracking.
   """
@@ -86,7 +86,7 @@ end
 ### 2. LLM Execution and Trace Collection
 
 ```elixir
-defmodule Kaizen.PromptEvolution.Executor do
+defmodule Jido.Evolve.PromptEvolution.Executor do
   @moduledoc """
   Executes prompts against LLMs and collects detailed traces for reflection.
   """
@@ -142,7 +142,7 @@ end
 ### 3. Reflective Feedback Generation
 
 ```elixir
-defmodule Kaizen.PromptEvolution.Reflector do
+defmodule Jido.Evolve.PromptEvolution.Reflector do
   @moduledoc """
   Analyzes execution traces and generates natural language feedback
   for prompt improvement using a separate LLM.
@@ -212,14 +212,14 @@ end
 ### 4. Evolutionary Prompt Mutations
 
 ```elixir
-defmodule Kaizen.PromptEvolution.Mutator do
+defmodule Jido.Evolve.PromptEvolution.Mutator do
   @moduledoc """
   Implements prompt mutations based on reflective feedback.
   """
   
-  @behaviour Kaizen.Mutation
+  @behaviour Jido.Evolve.Mutation
   
-  def mutate(%Kaizen.Prompt{} = prompt, %{feedback: feedback} = context) do
+  def mutate(%Jido.Evolve.Prompt{} = prompt, %{feedback: feedback} = context) do
     # Apply mutations based on reflection feedback
     mutations = parse_mutation_suggestions(feedback)
     
@@ -272,7 +272,7 @@ defmodule Kaizen.PromptEvolution.Mutator do
     # Reconstruct prompt text
     hybrid_text = reconstruct_prompt(hybrid_components)
     
-    Kaizen.Prompt.new(hybrid_text, metadata: %{
+    Jido.Evolve.Prompt.new(hybrid_text, metadata: %{
       parents: [prompt1.metadata.id, prompt2.metadata.id],
       crossover_method: :intelligent_component_merge
     })
@@ -283,12 +283,12 @@ end
 ### 5. Multi-Objective Fitness Evaluation
 
 ```elixir
-defmodule Kaizen.PromptEvolution.Fitness do
+defmodule Jido.Evolve.PromptEvolution.Fitness do
   @moduledoc """
   Evaluates prompts across multiple objectives: accuracy, efficiency, safety, etc.
   """
   
-  @behaviour Kaizen.Fitness
+  @behaviour Jido.Evolve.Fitness
   
   def evaluate(prompt, context) do
     test_cases = context.test_cases
@@ -296,7 +296,7 @@ defmodule Kaizen.PromptEvolution.Fitness do
     
     # Execute prompt against all test cases
     results = Enum.map(test_cases, fn test_case ->
-      Kaizen.PromptEvolution.Executor.execute_with_tracing(prompt, test_case, llm_config)
+      Jido.Evolve.PromptEvolution.Executor.execute_with_tracing(prompt, test_case, llm_config)
     end)
     
     # Calculate multi-objective scores
@@ -343,9 +343,9 @@ end
 ### 6. Complete GEPA Implementation
 
 ```elixir
-defmodule Kaizen.PromptEvolution do
+defmodule Jido.Evolve.PromptEvolution do
   @moduledoc """
-  Main interface for GEPA-style prompt optimization using Kaizen.
+  Main interface for GEPA-style prompt optimization using Jido.Evolve.
   """
   
   def optimize(opts) do
@@ -355,12 +355,12 @@ defmodule Kaizen.PromptEvolution do
     initial_population = generate_initial_prompts(config)
     
     # Set up evolutionary configuration
-    evolution_config = Kaizen.Config.new!(
+    evolution_config = Jido.Evolve.Config.new!(
       population_size: config.population_size,
       generations: config.generations,
       mutation_rate: config.mutation_rate,
       crossover_rate: config.crossover_rate,
-      selection_strategy: Kaizen.Selection.Pareto,  # Multi-objective
+      selection_strategy: Jido.Evolve.Selection.Pareto,  # Multi-objective
       elitism_rate: 0.1
     )
     
@@ -374,13 +374,13 @@ defmodule Kaizen.PromptEvolution do
     }
     
     # Run evolution with progress tracking
-    evolution_stream = Kaizen.Engine.evolve(
+    evolution_stream = Jido.Evolve.Engine.evolve(
       initial_population,
       evolution_config,
-      Kaizen.PromptEvolution.Fitness,
-      Kaizen.Evolvable.Prompt,
-      mutation: Kaizen.PromptEvolution.Mutator,
-      selection: Kaizen.Selection.Pareto,
+      Jido.Evolve.PromptEvolution.Fitness,
+      Jido.Evolve.Evolvable.Prompt,
+      mutation: Jido.Evolve.PromptEvolution.Mutator,
+      selection: Jido.Evolve.Selection.Pareto,
       context: fitness_context
     )
     
@@ -404,7 +404,7 @@ defmodule Kaizen.PromptEvolution do
   
   defp add_reflection_feedback(generation_state, config) do
     if rem(generation_state.generation, 5) == 0 do  # Reflect every 5 generations
-      feedback = Kaizen.PromptEvolution.Reflector.generate_feedback(
+      feedback = Jido.Evolve.PromptEvolution.Reflector.generate_feedback(
         generation_state.evaluation_results,
         config.reflection_config
       )
@@ -439,7 +439,7 @@ support_config = %{
   generations: 30
 }
 
-optimized = Kaizen.PromptEvolution.optimize(support_config)
+optimized = Jido.Evolve.PromptEvolution.optimize(support_config)
 ```
 
 ### 2. Code Generation Prompt Evolution
@@ -461,7 +461,7 @@ code_config = %{
   constraints: %{max_tokens: 2000, require_comments: true}
 }
 
-code_optimizer = Kaizen.PromptEvolution.optimize(code_config)
+code_optimizer = Jido.Evolve.PromptEvolution.optimize(code_config)
 ```
 
 ### 3. Content Creation Optimization
@@ -485,7 +485,7 @@ marketing_config = %{
   }
 }
 
-marketing_optimizer = Kaizen.PromptEvolution.optimize(marketing_config)
+marketing_optimizer = Jido.Evolve.PromptEvolution.optimize(marketing_config)
 ```
 
 ## Advanced Features
@@ -495,10 +495,10 @@ marketing_optimizer = Kaizen.PromptEvolution.optimize(marketing_config)
 ```elixir
 # Evolve different parts of prompts independently
 component_evolution = %{
-  system_message: Kaizen.PromptEvolution.evolve_component(:system),
-  instructions: Kaizen.PromptEvolution.evolve_component(:instructions), 
-  examples: Kaizen.PromptEvolution.evolve_component(:examples),
-  constraints: Kaizen.PromptEvolution.evolve_component(:constraints)
+  system_message: Jido.Evolve.PromptEvolution.evolve_component(:system),
+  instructions: Jido.Evolve.PromptEvolution.evolve_component(:instructions), 
+  examples: Jido.Evolve.PromptEvolution.evolve_component(:examples),
+  constraints: Jido.Evolve.PromptEvolution.evolve_component(:constraints)
 }
 ```
 
@@ -545,7 +545,7 @@ defmodule MyApp.PromptManager do
   def optimize_prompt(prompt_id, config) do
     current_prompt = get_prompt(prompt_id)
     
-    optimized = Kaizen.PromptEvolution.optimize(%{
+    optimized = Jido.Evolve.PromptEvolution.optimize(%{
       initial_prompt: current_prompt.text,
       test_cases: generate_test_cases(prompt_id),
       success_function: &evaluate_business_metrics/2
@@ -559,7 +559,7 @@ end
 
 ## Conclusion
 
-GEPA represents a paradigm shift in prompt engineering - from manual craft to automated evolution. By combining Kaizen's powerful evolutionary algorithms with ReqLLM's LLM integration, we can automatically discover prompts that outperform human-crafted versions across multiple objectives.
+GEPA represents a paradigm shift in prompt engineering - from manual craft to automated evolution. By combining Jido.Evolve's powerful evolutionary algorithms with ReqLLM's LLM integration, we can automatically discover prompts that outperform human-crafted versions across multiple objectives.
 
 The key insights:
 - **Language as learning signal**: Use rich textual feedback instead of scalar rewards

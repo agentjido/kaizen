@@ -1,6 +1,6 @@
-# Kaizen - Technical Review & Feedback Report
+# Jido.Evolve - Technical Review & Feedback Report
 
-This review is based on the code and design documents for the Kaizen evolutionary-algorithm framework. It focuses on architecture, code quality, protocol design, potential issues, documentation, testing, and performance.
+This review is based on the code and design documents for the Jido.Evolve evolutionary-algorithm framework. It focuses on architecture, code quality, protocol design, potential issues, documentation, testing, and performance.
 
 ## Strengths
 
@@ -16,7 +16,7 @@ This review is based on the code and design documents for the Kaizen evolutionar
 
 ### Architectural / Design Issues
 
-1. **Namespace drift** - Design doc uses `Evolutionary.*`, code uses `Kaizen.*`. Consolidate to one prefix or alias to prevent confusion in HexDocs & IntelliSense.
+1. **Namespace drift** - Design doc uses `Evolutionary.*`, code uses `Jido.Evolve.*`. Consolidate to one prefix or alias to prevent confusion in HexDocs & IntelliSense.
 
 2. **Crossover not wired** - `crossover_rate` exists in config but the engine never calls a crossover module. Add a crossover stage after parent selection or drop the option for MVP.
 
@@ -32,7 +32,7 @@ This review is based on the code and design documents for the Kaizen evolutionar
 
 ### Code-Level Observations
 
-1. `use Kaizen.Mutation` macro is referenced but not defined; replace with `@behaviour Kaizen.Mutation` (or create a macro that injects default callbacks).
+1. `use Jido.Evolve.Mutation` macro is referenced but not defined; replace with `@behaviour Jido.Evolve.Mutation` (or create a macro that injects default callbacks).
 
 2. Missing `@spec` for almost all public functions; Dialyzer will provide more value with specs.
 
@@ -48,9 +48,9 @@ This review is based on the code and design documents for the Kaizen evolutionar
 
 7. `Config` validation: rates should be bounded 0.0-1.0 (`min: 0.0, max: 1.0` in NimbleOptions).
 
-8. `Kaizen.State.find_best/1` crashes on empty `scores` map because `Enum.max_by/3` default not provided. You guard in caller, but safer to handle locally.
+8. `Jido.Evolve.State.find_best/1` crashes on empty `scores` map because `Enum.max_by/3` default not provided. You guard in caller, but safer to handle locally.
 
-9. In `Kaizen.Engine.evolution_step/…/apply_elitism/3` you mutate **worst offspring** by simply prepending elites and `Enum.take/2`. Because offspring are unsorted, you might drop good children. Sort offspring ascending by fitness before truncation or append elites and `Enum.uniq/2`.
+9. In `Jido.Evolve.Engine.evolution_step/…/apply_elitism/3` you mutate **worst offspring** by simply prepending elites and `Enum.take/2`. Because offspring are unsorted, you might drop good children. Sort offspring ascending by fitness before truncation or append elites and `Enum.uniq/2`.
 
 ### Protocol / Behaviour Evaluation
 
@@ -61,10 +61,10 @@ The set (`Evolvable`, `Fitness`, `Mutation`, `Selection`) is sound, but consider
 
 ### Documentation & Examples
 
-- HexDocs will show only compiled modules. The large design doc (`IDEA.md`) is fantastic but move the high-level "why/how" docs into `Kaizen` module documentation or separate guides in `docs/`.
-- Provide a runnable mix task (`mix kaizen.demo`) that invokes `HelloWorld.demo/0`.
+- HexDocs will show only compiled modules. The large design doc (`IDEA.md`) is fantastic but move the high-level "why/how" docs into `Jido.Evolve` module documentation or separate guides in `docs/`.
+- Provide a runnable mix task (`mix jido_evolve.demo`) that invokes `HelloWorld.demo/0`.
 - Add a "Writing a custom strategy" guide with a minimal template.
-- Example code should rely on `Kaizen.Config.new!/1` and not pattern-match on `{:ok, cfg}` for clarity.
+- Example code should rely on `Jido.Evolve.Config.new!/1` and not pattern-match on `{:ok, cfg}` for clarity.
 
 ### Testing Coverage
 
@@ -88,9 +88,9 @@ Current tests: 1 trivial version test + doctests. Suggestions:
 
 1. **Finalize MVP scope** - Decide whether genome abstraction & crossover will be first-class in 0.1.0. Remove or complete accordingly.
 
-2. **Refactor namespaces** - `Kaizen.*` everywhere; alias inside docs for brevity (`alias Kaizen.Selection.Tournament`).
+2. **Refactor namespaces** - `Jido.Evolve.*` everywhere; alias inside docs for brevity (`alias Jido.Evolve.Selection.Tournament`).
 
-3. **Add missing behaviours / specs** - Provide `Kaizen.Crossover` behaviour; convert `Mutation` "use" macro to `@behaviour`.
+3. **Add missing behaviours / specs** - Provide `Jido.Evolve.Crossover` behaviour; convert `Mutation` "use" macro to `@behaviour`.
 
 4. **Improve Config validation** - Add bounds, forbid invalid combinations (e.g., `crossover_rate = 0` but crossover module supplied).
 
@@ -111,4 +111,4 @@ Current tests: 1 trivial version test + doctests. Suggestions:
 
 ## Overall Assessment
 
-Kaizen already demonstrates solid architectural thinking and idiomatic Elixir use. The foundation is strong; most gaps are in wiring remaining features, clarifying semantics, strengthening validation, and raising test/documentation quality. Addressing the points above will make the library production-ready and an excellent reference implementation of evolutionary algorithms on the BEAM.
+Jido.Evolve already demonstrates solid architectural thinking and idiomatic Elixir use. The foundation is strong; most gaps are in wiring remaining features, clarifying semantics, strengthening validation, and raising test/documentation quality. Addressing the points above will make the library production-ready and an excellent reference implementation of evolutionary algorithms on the BEAM.

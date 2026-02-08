@@ -1,15 +1,15 @@
-# Evolving Hierarchical Task Networks with Kaizen
+# Evolving Hierarchical Task Networks with Jido.Evolve
 
 ## Overview
 
-This document explores using the Kaizen evolutionary algorithm framework to evolve HTN planning domains (represented as Elixir structs). The approach leverages Kaizen's pluggable Fitness, Mutation, Selection, Crossover, and Evolvable protocol to search the space of HTN structures while measuring planning outcomes in simulation.
+This document explores using the Jido.Evolve evolutionary algorithm framework to evolve HTN planning domains (represented as Elixir structs). The approach leverages Jido.Evolve's pluggable Fitness, Mutation, Selection, Crossover, and Evolvable protocol to search the space of HTN structures while measuring planning outcomes in simulation.
 
 ## Goals
 
 - Define fitness signals for HTNs that correlate with useful plans
 - Provide HTN-specific mutation and crossover operators
 - Support automated and human-in-the-loop evaluation modes
-- Use Kaizen's architecture for clean, maintainable implementation
+- Use Jido.Evolve's architecture for clean, maintainable implementation
 
 ## Scope
 
@@ -19,7 +19,7 @@ This document explores using the Kaizen evolutionary algorithm framework to evol
 
 ---
 
-## Representation and Integration with Kaizen
+## Representation and Integration with Jido.Evolve
 
 ### Entity Representation
 
@@ -30,7 +30,7 @@ This document explores using the Kaizen evolutionary algorithm framework to evol
 ### Evolvable Implementation
 
 ```elixir
-defimpl Kaizen.Evolvable, for: Jido.HTN.Domain do
+defimpl Jido.Evolve.Evolvable, for: Jido.HTN.Domain do
   def to_genome(domain), do: domain
   
   def from_genome(_domain, genome), do: genome
@@ -84,8 +84,8 @@ score = w1*success_rate + w2*robustness - w3*normalized_cost - w4*complexity_pen
 ### Fitness Module
 
 ```elixir
-defmodule KaizenHTN.Fitness do
-  use Kaizen.Fitness
+defmodule Jido.EvolveHTN.Fitness do
+  use Jido.Evolve.Fitness
   
   @timeout 200  # ms per problem
 
@@ -254,7 +254,7 @@ After each mutation:
 
 If validation fails and cannot be repaired in N steps:
 - Return `{:discard, domain}` 
-- Let Kaizen keep parent or inject random valid repair
+- Let Jido.Evolve keep parent or inject random valid repair
 
 ### Mutation Strength and Scheduling
 
@@ -295,7 +295,7 @@ Ensures syntactic validity by keeping well-formed method sets per task.
 
 ## Selection and Diversity
 
-- Use `Kaizen.Selection.Tournament` with modest pressure (k=3-5)
+- Use `Jido.Evolve.Selection.Tournament` with modest pressure (k=3-5)
 - Maintain diversity using `Evolvable.similarity/2`
 - Optionally reject crosses between near-identical parents
 - **Novelty bonus**: Add `+ε*(1 - avg_similarity_to_population)` to discourage collapse
@@ -332,31 +332,31 @@ DevOps runbooks as HTNs:
 
 ---
 
-## Implementation Patterns in Kaizen
+## Implementation Patterns in Jido.Evolve
 
 ### Config and Orchestration
 
 ```elixir
-config = Kaizen.Config.new!(
+config = Jido.Evolve.Config.new!(
   population_size: 40,
   generations: 80,
   mutation_rate: 0.3,
   crossover_rate: 0.6,
   elitism_rate: 0.05,
-  selection: Kaizen.Selection.Tournament,
-  fitness: KaizenHTN.Fitness,
-  mutation: KaizenHTN.Mutation,
-  crossover: KaizenHTN.Crossover,
-  evolvable: Kaizen.Evolvable.JidoHTN
+  selection: Jido.Evolve.Selection.Tournament,
+  fitness: Jido.EvolveHTN.Fitness,
+  mutation: Jido.EvolveHTN.Mutation,
+  crossover: Jido.EvolveHTN.Crossover,
+  evolvable: Jido.Evolve.Evolvable.JidoHTN
 )
 
 initial_population = seed_domains()  # one hand-authored + random variants
 
-Kaizen.evolve(
+Jido.Evolve.evolve(
   initial_population: initial_population,
   config: config,
-  fitness: KaizenHTN.Fitness,
-  evolvable: Kaizen.Evolvable.JidoHTN
+  fitness: Jido.EvolveHTN.Fitness,
+  evolvable: Jido.Evolve.Evolvable.JidoHTN
 )
 |> Stream.take(80)
 |> Enum.to_list()
@@ -459,6 +459,6 @@ end
 
 **Add complexity only when needed**: Multi-objective fitness and human feedback if automated signal fails or progress stalls.
 
-**Key insight**: HTN evolution is feasible with Kaizen's protocol-driven architecture. The main challenge is defining good fitness signals—which can be fully automated through simulation-based planning metrics, requiring no human involvement to start.
+**Key insight**: HTN evolution is feasible with Jido.Evolve's protocol-driven architecture. The main challenge is defining good fitness signals—which can be fully automated through simulation-based planning metrics, requiring no human involvement to start.
 
 **Human involvement becomes valuable** when optimizing for subjective qualities (readability, maintainability, safety) or when automated metrics plateau despite high diversity.

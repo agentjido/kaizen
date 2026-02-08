@@ -1,4 +1,4 @@
-# Agent Guidelines for Kaizen Project
+# Agent Guidelines for Jido.Evolve Project
 
 ## Build & Test Commands
 - `mix compile` - Compile the project
@@ -9,9 +9,9 @@
 - `mix deps.get` - Get dependencies
 
 ## Project Structure
-- **Main app**: Kaizen - Generic evolutionary algorithm framework in Elixir
-- **Core modules**: `lib/kaizen/` contains main implementation
-- **Application**: OTP application with supervisor tree (see `lib/kaizen/application.ex`)
+- **Main app**: Jido.Evolve - Generic evolutionary algorithm framework in Elixir
+- **Core modules**: `lib/jido_evolve/` contains main implementation
+- **Application**: OTP application with supervisor tree (see `lib/jido_evolve/application.ex`)
 - **Architecture**: Protocol-based system for evolutinary algorithms (see IDEA.md for detailed design)
 - **Key concepts**: Evolvable protocols, fitness behaviors, mutation/selection strategies, Pareto optimization
 

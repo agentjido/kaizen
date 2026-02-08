@@ -1,6 +1,6 @@
-defmodule Kaizen.Examples.Utils do
+defmodule Jido.Evolve.Examples.Utils do
   @moduledoc """
-  Shared utilities for Kaizen examples.
+  Shared utilities for Jido.Evolve examples.
   """
 
   @doc """

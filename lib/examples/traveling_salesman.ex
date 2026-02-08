@@ -1,4 +1,4 @@
-defmodule Kaizen.Examples.TravelingSalesman do
+defmodule Jido.Evolve.Examples.TravelingSalesman do
   @moduledoc """
   Traveling Salesman Problem (TSP): Find the shortest route visiting all cities.
 
@@ -24,7 +24,7 @@ defmodule Kaizen.Examples.TravelingSalesman do
 
   ## Usage
 
-      iex> Kaizen.Examples.TravelingSalesman.run()
+      iex> Jido.Evolve.Examples.TravelingSalesman.run()
       # Evolution progress shown...
       # Converges to near-optimal route
 
@@ -34,7 +34,7 @@ defmodule Kaizen.Examples.TravelingSalesman do
   demonstrating how PMX crossover combines good route segments.
   """
 
-  alias Kaizen.Examples.Utils
+  alias Jido.Evolve.Examples.Utils
 
   @cities [
     %{name: "A", x: 0.0, y: 0.0},
@@ -49,7 +49,7 @@ defmodule Kaizen.Examples.TravelingSalesman do
     %{name: "J", x: 5.0, y: 1.0}
   ]
 
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
 
   @impl true
   def evaluate(permutation, context) do
@@ -100,25 +100,25 @@ defmodule Kaizen.Examples.TravelingSalesman do
     end
 
     {:ok, config} =
-      Kaizen.Config.new(
+      Jido.Evolve.Config.new(
         population_size: population_size,
         generations: generations,
         mutation_rate: 0.25,
         crossover_rate: 0.9,
         elitism_rate: 0.02,
-        selection_strategy: Kaizen.Selection.Tournament,
-        mutation_strategy: Kaizen.Mutation.Permutation,
-        crossover_strategy: Kaizen.Crossover.PMX,
+        selection_strategy: Jido.Evolve.Selection.Tournament,
+        mutation_strategy: Jido.Evolve.Mutation.Permutation,
+        crossover_strategy: Jido.Evolve.Crossover.PMX,
         termination_criteria: []
       )
 
     result =
       try do
-        Kaizen.evolve(
+        Jido.Evolve.evolve(
           initial_population: initial_population,
           config: config,
           fitness: __MODULE__,
-          evolvable: Kaizen.Evolvable.List,
+          evolvable: Jido.Evolve.Evolvable.List,
           context: context
         )
         |> Stream.with_index()
@@ -181,8 +181,7 @@ defmodule Kaizen.Examples.TravelingSalesman do
     route_preview =
       state.best_entity
       |> Enum.take(5)
-      |> Enum.map(fn idx -> Enum.at(cities, idx).name end)
-      |> Enum.join(" -> ")
+      |> Enum.map_join(" -> ", fn idx -> Enum.at(cities, idx).name end)
 
     IO.puts(
       "Gen #{String.pad_leading(to_string(state.generation), 3)}: " <>
@@ -201,9 +200,7 @@ defmodule Kaizen.Examples.TravelingSalesman do
     IO.puts("\nRoute:")
 
     route_names =
-      state.best_entity
-      |> Enum.map(fn idx -> Enum.at(cities, idx).name end)
-      |> Enum.join(" -> ")
+      Enum.map_join(state.best_entity, " -> ", fn idx -> Enum.at(cities, idx).name end)
 
     IO.puts("  #{route_names} -> #{Enum.at(cities, Enum.at(state.best_entity, 0)).name}")
     IO.puts("")

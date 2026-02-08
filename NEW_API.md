@@ -1,4 +1,4 @@
-# Kaizen v2 – A Friendlier API for Everyday Developers
+# Jido.Evolve v2 – A Friendlier API for Everyday Developers
 
 ## 1. Philosophy & Design Principles  
 
@@ -11,7 +11,7 @@
 4. Batteries-included examples  
    • Real-world "recipes" ship with the library and are runnable with `mix run`.  
 5. Keep the current engine intact  
-   • The new API is a thin convenience layer; power users still use `Kaizen.*` modules directly.
+   • The new API is a thin convenience layer; power users still use `Jido.Evolve.*` modules directly.
 
 ---
 
@@ -21,16 +21,16 @@
 
 ```elixir
 defmodule MyFitness do
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
   def evaluate(text, _), do: {:ok, String.jaro_distance(text, "Hello")}
 end
 
-config = Kaizen.Config.new!(population_size: 100)
-Kaizen.evolve(
+config = Jido.Evolve.Config.new!(population_size: 100)
+Jido.Evolve.evolve(
   initial_population: ["Hxllo"],
   config:   config,
   fitness:  MyFitness,
-  evolvable: Kaizen.Evolvable.String
+  evolvable: Jido.Evolve.Evolvable.String
 )
 |> Enum.take(100) |> List.last()
 ```
@@ -38,7 +38,7 @@ Kaizen.evolve(
 ### New (proposed)
 
 ```elixir
-Kaizen.quick_solve("Hxllo",
+Jido.Evolve.quick_solve("Hxllo",
   target:  "Hello",
   generations: 100,
   show_progress: true)
@@ -53,19 +53,19 @@ Under the hood it builds the same config, evolvable, etc.—but the user never s
 
 ```elixir
 # 3.1 One-liner helpers
-Kaizen.quick_solve(value, opts \\ [])
-Kaizen.tune(fn params -> score end, ranges, opts \\ [])
-Kaizen.search_best(fn candidate -> score end, seed, opts \\ [])
+Jido.Evolve.quick_solve(value, opts \\ [])
+Jido.Evolve.tune(fn params -> score end, ranges, opts \\ [])
+Jido.Evolve.search_best(fn candidate -> score end, seed, opts \\ [])
 
 # 3.2 Problem objects (mid-level)
-Kaizen.Problem.new(initial, scorer, opts \\ [])
-Kaizen.Problem.run(problem)
+Jido.Evolve.Problem.new(initial, scorer, opts \\ [])
+Jido.Evolve.Problem.run(problem)
 
 # 3.3 Opt-in power knobs
 problem
-|> Kaizen.Problem.with_tweak_strategy(:guided)
-|> Kaizen.Problem.with_population(200)
-|> Kaizen.Problem.run()
+|> Jido.Evolve.Problem.with_tweak_strategy(:guided)
+|> Jido.Evolve.Problem.with_population(200)
+|> Jido.Evolve.Problem.run()
 ```
 
 ### Key option names
@@ -76,7 +76,7 @@ problem
 • :show_progress – pretty console output  
 • :stop_when – `fn best -> boolean end` custom termination  
 
-All defaults are loaded from `Kaizen.Defaults`.
+All defaults are loaded from `Jido.Evolve.Defaults`.
 
 ---
 
@@ -84,15 +84,15 @@ All defaults are loaded from `Kaizen.Defaults`.
 
 Module                     | Purpose                           | Real-World Use Case
 ---------------------------|-----------------------------------|--------------------------------------
-Kaizen.StringTarget        | evolve a string to a target text  | Generate test data, password cracking
-Kaizen.ServerConfig        | optimize server performance       | Web server tuning, database settings  
-Kaizen.QueryOptimizer      | find efficient query patterns     | Database performance, API optimization
-Kaizen.UILayout            | evolve better interface layouts   | A/B testing automation, design optimization
-Kaizen.ParamsHyperTune     | hyperparameter search             | ML model tuning, algorithm configuration
-Kaizen.CacheStrategy       | optimize caching algorithms       | Redis tuning, CDN configuration
-Kaizen.Math.Maximize       | maximize mathematical functions   | Engineering optimization, profit maximization
+Jido.Evolve.StringTarget        | evolve a string to a target text  | Generate test data, password cracking
+Jido.Evolve.ServerConfig        | optimize server performance       | Web server tuning, database settings  
+Jido.Evolve.QueryOptimizer      | find efficient query patterns     | Database performance, API optimization
+Jido.Evolve.UILayout            | evolve better interface layouts   | A/B testing automation, design optimization
+Jido.Evolve.ParamsHyperTune     | hyperparameter search             | ML model tuning, algorithm configuration
+Jido.Evolve.CacheStrategy       | optimize caching algorithms       | Redis tuning, CDN configuration
+Jido.Evolve.Math.Maximize       | maximize mathematical functions   | Engineering optimization, profit maximization
 
-Each scenario is a thin wrapper around `Kaizen.Problem` pre-filled with:
+Each scenario is a thin wrapper around `Jido.Evolve.Problem` pre-filled with:
 • a default representation (Evolvable)  
 • a tweaker (Mutation)  
 • a scorer (Fitness)  
@@ -104,12 +104,12 @@ Each scenario is a thin wrapper around `Kaizen.Problem` pre-filled with:
 
 Step 0 – I just want a better value  
 ```elixir
-Kaizen.quick_solve(start, target: wanted)
+Jido.Evolve.quick_solve(start, target: wanted)
 ```
 
 Step 1 – Custom scoring, still easy  
 ```elixir
-Kaizen.search_best(seed_value,
+Jido.Evolve.search_best(seed_value,
   score: &my_fun/1,
   generations: 50)
 ```
@@ -117,16 +117,16 @@ Kaizen.search_best(seed_value,
 Step 2 – Need control over population & tweaks  
 ```elixir
 problem =
-  Kaizen.Problem.new(seed_value, &my_fun/1)
-  |> Kaizen.Problem.with_population(300)
-  |> Kaizen.Problem.with_tweak_rate(0.2)
+  Jido.Evolve.Problem.new(seed_value, &my_fun/1)
+  |> Jido.Evolve.Problem.with_population(300)
+  |> Jido.Evolve.Problem.with_tweak_rate(0.2)
 
-Kaizen.Problem.run(problem)
+Jido.Evolve.Problem.run(problem)
 ```
 
 Step 3 – Power user (today's API)  
 ```elixir
-Kaizen.Engine.evolve(initial, config, fitness, evolvable)
+Jido.Evolve.Engine.evolve(initial, config, fitness, evolvable)
 ```
 
 Each layer simply builds the next one—zero duplication.
@@ -155,8 +155,8 @@ scorer = fn %{pool_size: p, timeout_ms: t, max_connections: m, cache_ttl: c} ->
   # Returns higher-is-better score (e.g. requests/sec - average_latency)
 end
 
-# Let Kaizen find the best settings
-best_config = Kaizen.tune(scorer, ranges, 
+# Let Jido.Evolve find the best settings
+best_config = Jido.Evolve.tune(scorer, ranges, 
   generations: 30,
   population: 50,
   show_progress: true
@@ -188,7 +188,7 @@ fitness_fn = fn response ->
 end
 
 # Evolve towards optimal response
-optimal = Kaizen.search_best(bloated_response, 
+optimal = Jido.Evolve.search_best(bloated_response, 
   score: fitness_fn,
   generations: 50,
   tweak_rate: 0.2
@@ -220,7 +220,7 @@ query_scorer = fn query_config ->
 end
 
 # Evolve faster queries
-fast_query = Kaizen.search_best(initial_query,
+fast_query = Jido.Evolve.search_best(initial_query,
   score: query_scorer,
   generations: 25,
   population: 30
@@ -239,7 +239,7 @@ ranges = %{
 }
 
 best =
-  Kaizen.tune(
+  Jido.Evolve.tune(
     fn %{lr: lr, batch: b, momentum: m} ->
       Model.train_and_score(lr, b, m)    # returns higher-is-better float
     end,
@@ -279,7 +279,7 @@ ui_scorer = fn layout ->
 end
 
 # Evolve better UI
-better_ui = Kaizen.search_best(initial_layout,
+better_ui = Jido.Evolve.search_best(initial_layout,
   score: ui_scorer,
   generations: 40,
   show_progress: true
@@ -310,7 +310,7 @@ cache_scorer = fn config ->
   hit_rate * 100 - avg_latency  # higher hit rate good, lower latency good
 end
 
-optimal_cache = Kaizen.search_best(cache_config,
+optimal_cache = Jido.Evolve.search_best(cache_config,
   score: cache_scorer,
   generations: 35,
   population: 40
@@ -321,11 +321,11 @@ optimal_cache = Kaizen.search_best(cache_config,
 
 ```elixir
 problem =
-  Kaizen.StringTarget.problem("Hxllo", target: "Hello")
-  |> Kaizen.Problem.with_generations(200)
-  |> Kaizen.Problem.with_show_progress(true)
+  Jido.Evolve.StringTarget.problem("Hxllo", target: "Hello")
+  |> Jido.Evolve.Problem.with_generations(200)
+  |> Jido.Evolve.Problem.with_show_progress(true)
 
-solution = Kaizen.Problem.run(problem)
+solution = Jido.Evolve.Problem.run(problem)
 #=> %{best: "Hello", score: 1.0, generation: 42}
 ```
 
@@ -333,28 +333,28 @@ solution = Kaizen.Problem.run(problem)
 
 ```elixir
 problem =
-  Kaizen.Math.Maximize.problem(&my_equation/1, initial: 0.5)
-  |> Kaizen.Problem.with_tweak_strategy(MyCustomMutator)
+  Jido.Evolve.Math.Maximize.problem(&my_equation/1, initial: 0.5)
+  |> Jido.Evolve.Problem.with_tweak_strategy(MyCustomMutator)
 
-Kaizen.Problem.run(problem)
+Jido.Evolve.Problem.run(problem)
 ```
 
 ---
 
 ## 7. Implementation Sketch
 
-1. `Kaizen.Problem` struct  
+1. `Jido.Evolve.Problem` struct  
    ```elixir
    defstruct [:initial, :scorer, :opts]
    ```
-2. `Kaizen.quick_solve/2` simply calls `StringTarget.problem/2 |> Problem.run/1`.
-3. `Problem.run/1` converts to internal config and delegates to `Kaizen.Engine`.
-4. Default components live in `Kaizen.BuiltIns.*`; mapping table:
+2. `Jido.Evolve.quick_solve/2` simply calls `StringTarget.problem/2 |> Problem.run/1`.
+3. `Problem.run/1` converts to internal config and delegates to `Jido.Evolve.Engine`.
+4. Default components live in `Jido.Evolve.BuiltIns.*`; mapping table:
 
    User option         | Engine component
    --------------------|--------------------
-   :tweak_strategy     | Kaizen.Mutation.\*
-   :selection_strategy | Kaizen.Selection.\*
+   :tweak_strategy     | Jido.Evolve.Mutation.\*
+   :selection_strategy | Jido.Evolve.Selection.\*
    :representation     | Evolvable impl
 
 5. Public docs list *"If you need X, require Y module"* to bridge to advanced API.
@@ -364,7 +364,7 @@ Kaizen.Problem.run(problem)
 ## 8. Example Directory Layout
 
 ```
-lib/kaizen
+lib/jido_evolve
 ├── easy/
 │   ├── quick.ex          # quick_solve, tune, search_best
 │   ├── problem.ex        # Problem struct + helpers
@@ -384,4 +384,4 @@ lib/kaizen
 • Friendly naming, defaults, and examples remove the evolutionary-algorithm barrier.  
 • All additions are thin wrappers; no rewrite of the proven core required.  
 
-This design keeps Kaizen powerful for researchers yet *approachable* for everyday Elixir developers.
+This design keeps Jido.Evolve powerful for researchers yet *approachable* for everyday Elixir developers.

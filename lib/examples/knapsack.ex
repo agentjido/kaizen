@@ -1,4 +1,4 @@
-defmodule Kaizen.Examples.Knapsack do
+defmodule Jido.Evolve.Examples.Knapsack do
   @moduledoc """
   Knapsack Problem: Select items to maximize value without exceeding weight capacity.
 
@@ -26,7 +26,7 @@ defmodule Kaizen.Examples.Knapsack do
 
   ## Usage
 
-      iex> Kaizen.Examples.Knapsack.run()
+      iex> Jido.Evolve.Examples.Knapsack.run()
       # Evolution progress shown...
       # Final solution near optimal value
 
@@ -57,7 +57,7 @@ defmodule Kaizen.Examples.Knapsack do
   @capacity 15
   @penalty_multiplier 1000
 
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
 
   @impl true
   def evaluate(genome, context) do
@@ -123,24 +123,24 @@ defmodule Kaizen.Examples.Knapsack do
     end
 
     {:ok, config} =
-      Kaizen.Config.new(
+      Jido.Evolve.Config.new(
         population_size: population_size,
         generations: generations,
         mutation_rate: 0.15,
         crossover_rate: 0.65,
         elitism_rate: 0.02,
-        selection_strategy: Kaizen.Selection.Tournament,
-        mutation_strategy: Kaizen.Mutation.Binary,
-        crossover_strategy: Kaizen.Crossover.Uniform,
+        selection_strategy: Jido.Evolve.Selection.Tournament,
+        mutation_strategy: Jido.Evolve.Mutation.Binary,
+        crossover_strategy: Jido.Evolve.Crossover.Uniform,
         termination_criteria: [target_fitness: optimal]
       )
 
     result =
-      Kaizen.evolve(
+      Jido.Evolve.evolve(
         initial_population: initial_population,
         config: config,
         fitness: __MODULE__,
-        evolvable: Kaizen.Evolvable.List,
+        evolvable: Jido.Evolve.Evolvable.List,
         context: context
       )
       |> Stream.with_index()

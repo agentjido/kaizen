@@ -1,9 +1,9 @@
-defmodule Kaizen.MixProject do
+defmodule Jido.Evolve.MixProject do
   use Mix.Project
 
   def project do
     [
-      app: :kaizen,
+      app: :jido_evolve,
       version: "0.1.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
@@ -16,7 +16,7 @@ defmodule Kaizen.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {Kaizen.Application, []}
+      mod: {Jido.Evolve.Application, []}
     ]
   end
 
@@ -47,10 +47,10 @@ defmodule Kaizen.MixProject do
         "credo --strict"
       ],
       q: ["quality"],
-      "demo.hello_world": ["run -e Kaizen.Examples.HelloWorld.demo()"],
-      "demo.knapsack": ["run -e Kaizen.Examples.Knapsack.run()"],
-      "demo.tsp": ["run -e Kaizen.Examples.TravelingSalesman.demo()"],
-      "demo.hyperparameters": ["run -e Kaizen.Examples.HyperparameterTuning.demo()"]
+      "demo.hello_world": ["run -e Jido.Evolve.Examples.HelloWorld.demo()"],
+      "demo.knapsack": ["run -e Jido.Evolve.Examples.Knapsack.run()"],
+      "demo.tsp": ["run -e Jido.Evolve.Examples.TravelingSalesman.demo()"],
+      "demo.hyperparameters": ["run -e Jido.Evolve.Examples.HyperparameterTuning.demo()"]
     ]
   end
 end

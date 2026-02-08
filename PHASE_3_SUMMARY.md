@@ -6,7 +6,7 @@ Fixed critical bug where mutation probability was applied twice (once in Engine,
 ## Changes Made
 
 ### 1. Engine.ex - Removed Conditional Gating
-**File**: `lib/kaizen/engine.ex`
+**File**: `lib/jido_evolve/engine.ex`
 
 **Before** (lines 254-272):
 ```elixir
@@ -46,7 +46,7 @@ end
 - Mutation modules control their own probability logic using the `:rate` option
 
 ### 2. Config.ex - Updated Documentation
-**File**: `lib/kaizen/config.ex`
+**File**: `lib/jido_evolve/config.ex`
 
 **Before** (line 45):
 ```elixir
@@ -98,10 +98,10 @@ Added new test to verify unconditional calling:
 ## Impact on Existing Mutation Modules
 
 All existing mutation modules already implement their own probability logic:
-- `Kaizen.Mutation.Binary` - per-bit probability
-- `Kaizen.Mutation.Text` - per-character probability  
-- `Kaizen.Mutation.HParams` - per-hyperparameter probability
-- `Kaizen.Mutation.Permutation` - per-operation probability
+- `Jido.Evolve.Mutation.Binary` - per-bit probability
+- `Jido.Evolve.Mutation.Text` - per-character probability  
+- `Jido.Evolve.Mutation.HParams` - per-hyperparameter probability
+- `Jido.Evolve.Mutation.Permutation` - per-operation probability
 
 These modules will now behave correctly without the extra gating layer.
 

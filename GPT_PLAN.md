@@ -5,7 +5,7 @@ Below is a focused, architecture‑level review and a concrete implementation pl
 ## Executive summary (what’s good)
 
 * **Clear separation of roles:** Behaviours (`Fitness`, `Selection`, `Mutation`) and protocol (`Evolvable`) give a solid, extensible core.
-* **Stream‑driven engine with telemetry and concurrency:** `Kaizen.Engine` uses `Task.async_stream/3` and emits telemetry—good foundations for scaling.
+* **Stream‑driven engine with telemetry and concurrency:** `Jido.Evolve.Engine` uses `Task.async_stream/3` and emits telemetry—good foundations for scaling.
 * **Examples demonstrate breadth:** From strings to TSP and HParams, the package showcases multiple genome types and operators.
 
 ## High‑impact issues to fix first
@@ -22,11 +22,11 @@ Below is a focused, architecture‑level review and a concrete implementation pl
 
 # Implementation plan
 
-## 1) Fix `Kaizen.Mutation.Permutation.inversion/1` slicing (bug)
+## 1) Fix `Jido.Evolve.Mutation.Permutation.inversion/1` slicing (bug)
 
 **Files:**
 
-* `lib/kaizen/mutation/permutation.ex`
+* `lib/jido_evolve/mutation/permutation.ex`
 
 **Change:** Replace `Enum.slice/2` range slicing with start+length slicing to avoid negative/descending ranges. Also make the segment inclusive.
 
@@ -62,8 +62,8 @@ after_segment = Enum.slice(permutation, end_idx + 1, n - (end_idx + 1))
 
 **Files:**
 
-* `lib/kaizen/engine.ex` (main)
-* (Optional) `lib/kaizen/config.ex` (naming clarifications)
+* `lib/jido_evolve/engine.ex` (main)
+* (Optional) `lib/jido_evolve/config.ex` (naming clarifications)
 
 **Modify in:** `select_and_breed/7`
 
@@ -95,7 +95,7 @@ end
 
 **Reasoning:** Keeps semantics consistent across mutation strategies; `Binary/Text/HParams` already interpret `:rate` per element/gene; `Permutation` interprets it per operator—still fine as module‑local choice.
 
-**Optional config clarification:** In `Kaizen.Config` docs, document that `mutation_rate` is **interpreted by the selected mutation module** (per‑gene for binary/text, per‑operation for permutation). If you prefer strict separation, introduce **two knobs**:
+**Optional config clarification:** In `Jido.Evolve.Config` docs, document that `mutation_rate` is **interpreted by the selected mutation module** (per‑gene for binary/text, per‑operation for permutation). If you prefer strict separation, introduce **two knobs**:
 
 * `mutation_entity_chance` (Engine gating)
 * `mutation_gene_rate` (module per‑gene rate)
@@ -109,8 +109,8 @@ end
 
 **Files:**
 
-* `lib/kaizen/selection/tournament.ex`
-* `lib/kaizen/engine.ex` (to pass options, see #4)
+* `lib/jido_evolve/selection/tournament.ex`
+* `lib/jido_evolve/engine.ex` (to pass options, see #4)
 
 **Issue:** `:math.pow(score, pressure)` fails for negative scores when `pressure` is non‑integer and is non‑monotonic around zero.
 
@@ -133,7 +133,7 @@ adjusted_score = :math.pow(norm, pressure)
 
 **Files:**
 
-* `lib/kaizen/engine.ex`
+* `lib/jido_evolve/engine.ex`
 
 **Issue:** Engine calls `selection_module.select(population, scores, count, [])`, ignoring configurable knobs like tournament size.
 
@@ -144,7 +144,7 @@ selection_opts = [tournament_size: 2, pressure: 1.0] # derive from config, or ad
 all_parents = selection_module.select(population, scores, offspring_count * 2, selection_opts)
 ```
 
-**Config update (optional non‑breaking):** Document how to pass selection options (e.g., add `selection_opts` field to `Kaizen.Config`). If you want strong typing, add fields `tournament_size :: pos_integer`, `selection_pressure :: float` to `Config` and use them here.
+**Config update (optional non‑breaking):** Document how to pass selection options (e.g., add `selection_opts` field to `Jido.Evolve.Config`). If you want strong typing, add fields `tournament_size :: pos_integer`, `selection_pressure :: float` to `Config` and use them here.
 
 **Side effects:** Better control over evolutionary pressure; reproducible behavior.
 
@@ -154,7 +154,7 @@ all_parents = selection_module.select(population, scores, offspring_count * 2, s
 
 **Files:**
 
-* `lib/kaizen/crossover/pmx.ex`
+* `lib/jido_evolve/crossover/pmx.ex`
 
 **Issue:** Current implementation maps only one child. That halves recombination benefits.
 
@@ -173,8 +173,8 @@ all_parents = selection_module.select(population, scores, offspring_count * 2, s
 
 **Files:**
 
-* `lib/kaizen/mutation/text.ex`
-* `lib/kaizen/mutation/random.ex`
+* `lib/jido_evolve/mutation/text.ex`
+* `lib/jido_evolve/mutation/random.ex`
 
 **Issue:** Both iterate with indices from the original list and mutate `acc`, so inserts/deletes shift indices.
 
@@ -208,7 +208,7 @@ Use this in `apply_mutations/3` for both modules.
 
 **Files:**
 
-* `lib/kaizen/mutation/permutation.ex`
+* `lib/jido_evolve/mutation/permutation.ex`
 
 **Issue:** After deleting at `from_idx`, subsequent `to_idx` should be adjusted if `to_idx > from_idx` (the list is shorter by one).
 
@@ -229,7 +229,7 @@ result = List.insert_at(without, adj_to, value)
 
 **Files:**
 
-* `lib/kaizen/config.ex`
+* `lib/jido_evolve/config.ex`
 
 **Issue:** `:rand.seed(:default, seed)` with integer is ambiguous across OTP versions.
 
@@ -252,7 +252,7 @@ end
 
 **Files:**
 
-* `lib/kaizen/crossover/string.ex`
+* `lib/jido_evolve/crossover/string.ex`
 
 **Issue:** Current slicing is codepoint‑based. Combining marks/emoji may split incorrectly.
 
@@ -273,9 +273,9 @@ g2 = String.graphemes(parent2)
 
 **Files:**
 
-* `lib/kaizen/config.ex` (docs)
-* `lib/kaizen/engine.ex` (option pluming, see #4)
-* `lib/kaizen/selection/tournament.ex` (honor options)
+* `lib/jido_evolve/config.ex` (docs)
+* `lib/jido_evolve/engine.ex` (option pluming, see #4)
+* `lib/jido_evolve/selection/tournament.ex` (honor options)
 
 **Change:** Adopt a consistent pattern:
 
@@ -290,7 +290,7 @@ g2 = String.graphemes(parent2)
 
 **Files:**
 
-* `lib/kaizen/crossover/map_uniform.ex`
+* `lib/jido_evolve/crossover/map_uniform.ex`
 
 **Issue:** Keys are taken separately for child1/child2. If parents differ in keys, children may differ in shape.
 
@@ -310,7 +310,7 @@ child2 = for k <- keys, into: %{}, do: {k, crossover_value(Map.get(parent2, k), 
 
 **Files:**
 
-* `lib/kaizen/engine.ex`
+* `lib/jido_evolve/engine.ex`
 
 **Issue:** Engine ignores `batch_evaluate/2`.
 
@@ -335,8 +335,8 @@ end
 
 **Files:**
 
-* `lib/kaizen/selection.ex` (docs already have optional callback)
-* `lib/kaizen/engine.ex`
+* `lib/jido_evolve/selection.ex` (docs already have optional callback)
+* `lib/jido_evolve/engine.ex`
 
 **Change:** After `select/4`, call `maintain_diversity/3` if exported:
 
@@ -355,7 +355,7 @@ selected = if function_exported?(selection_module, :maintain_diversity, 3),
 
 **Files:**
 
-* `lib/kaizen/engine.ex`
+* `lib/jido_evolve/engine.ex`
 
 **Issue:** Some Elixir versions prefer `Logger.warn/2`. Pick one and use consistently. If you need cross‑version compatibility, define a small helper:
 
@@ -373,7 +373,7 @@ end
 
 **Files:**
 
-* `lib/kaizen/evolvable/hparams.ex`
+* `lib/jido_evolve/evolvable/hparams.ex`
 * `lib/examples/hyperparameter_tuning.ex`
 * `lib/examples/TODO_EXAMPLES.md`
 
@@ -399,8 +399,8 @@ end
 
 **Files/Structure:**
 
-* Move `lib/kaizen/protocols/crossover.ex` → `lib/kaizen/crossover/behaviour.ex` (or keep path but rename module doc)
-* The module is a **behaviour**, not a protocol; the name `Kaizen.Crossover` is correct, but the directory path “protocols/” is misleading.
+* Move `lib/jido_evolve/protocols/crossover.ex` → `lib/jido_evolve/crossover/behaviour.ex` (or keep path but rename module doc)
+* The module is a **behaviour**, not a protocol; the name `Jido.Evolve.Crossover` is correct, but the directory path “protocols/” is misleading.
 
 **Side effects:** None at runtime; improves discoverability.
 
@@ -410,8 +410,8 @@ end
 
 **Files:**
 
-* `lib/kaizen/config.ex`
-* `lib/kaizen/engine.ex`
+* `lib/jido_evolve/config.ex`
+* `lib/jido_evolve/engine.ex`
 
 **Change:** Add `evaluation_timeout :: pos_integer | :infinity` to config and use it in `Task.async_stream/3` instead of the hardcoded `:timer.seconds(30)`. Include more telemetry fields (mutation_rate, crossover_rate, diversity).
 
@@ -423,13 +423,13 @@ end
 
 **Files (new):**
 
-* `lib/kaizen/selection/nsga2.ex` (new selection behaviour implementation)
-* `lib/kaizen/fitness/multi.ex` (optional helpers for vector fitness and Pareto utilities)
+* `lib/jido_evolve/selection/nsga2.ex` (new selection behaviour implementation)
+* `lib/jido_evolve/fitness/multi.ex` (optional helpers for vector fitness and Pareto utilities)
 
 **Interfaces:**
 
-* `Kaizen.Fitness.evaluate/2` to allow returning `{:ok, %{score: score, metadata: %{objectives: [f1, f2, ...]}}}`
-* `Kaizen.Selection.NSGA2.select/4` signature per behaviour; internally perform non‑dominated sorting and crowding distance.
+* `Jido.Evolve.Fitness.evaluate/2` to allow returning `{:ok, %{score: score, metadata: %{objectives: [f1, f2, ...]}}}`
+* `Jido.Evolve.Selection.NSGA2.select/4` signature per behaviour; internally perform non‑dominated sorting and crowding distance.
 
 **Engine changes:**
 

@@ -1,4 +1,4 @@
-# Implementation Summary: Kaizen Examples & Components
+# Implementation Summary: Jido.Evolve Examples & Components
 
 ## Overview
 Implemented remaining evolutionary algorithm examples from TODO_EXAMPLES.md, removed emojis from all demos, and created DRY shared utilities. All examples follow consistent patterns and professional ASCII-only output.
@@ -20,9 +20,9 @@ Implemented remaining evolutionary algorithm examples from TODO_EXAMPLES.md, rem
 
 ### 3. TSP Components & Example
 **Files Created**:
-- `lib/kaizen/evolvable/permutation.ex` - Helper functions for permutations
-- `lib/kaizen/crossover/pmx.ex` - Partially Mapped Crossover (PMX)
-- `lib/kaizen/mutation/permutation.ex` - Swap, inversion, insertion mutations
+- `lib/jido_evolve/evolvable/permutation.ex` - Helper functions for permutations
+- `lib/jido_evolve/crossover/pmx.ex` - Partially Mapped Crossover (PMX)
+- `lib/jido_evolve/mutation/permutation.ex` - Swap, inversion, insertion mutations
 - `lib/examples/traveling_salesman.ex` - TSP demo with 10 cities
 
 **Key Features**:
@@ -36,9 +36,9 @@ Implemented remaining evolutionary algorithm examples from TODO_EXAMPLES.md, rem
 
 ### 4. Hyperparameter Tuning Components & Example
 **Files Created**:
-- `lib/kaizen/evolvable/hparams.ex` - Schema-driven map evolution
-- `lib/kaizen/mutation/hparams.ex` - Type-aware mutations with schema support
-- `lib/kaizen/crossover/map_uniform.ex` - Uniform crossover for maps
+- `lib/jido_evolve/evolvable/hparams.ex` - Schema-driven map evolution
+- `lib/jido_evolve/mutation/hparams.ex` - Type-aware mutations with schema support
+- `lib/jido_evolve/crossover/map_uniform.ex` - Uniform crossover for maps
 - `lib/examples/hyperparameter_tuning.ex` - ML hyperparameter optimization demo
 
 **Key Features**:
@@ -85,15 +85,15 @@ This applies to:
 
 ### Behaviour Implementations
 All crossover and mutation modules use `@behaviour` instead of `use`:
-- `Kaizen.Crossover.PMX`
-- `Kaizen.Crossover.MapUniform`
-- `Kaizen.Mutation.Permutation`
-- `Kaizen.Mutation.HParams`
+- `Jido.Evolve.Crossover.PMX`
+- `Jido.Evolve.Crossover.MapUniform`
+- `Jido.Evolve.Mutation.Permutation`
+- `Jido.Evolve.Mutation.HParams`
 
 ### Evolvable Protocol Extensions
 Added complete protocol implementations:
-- `Kaizen.Evolvable.Map` with `to_genome/1`, `from_genome/2`, `similarity/2`, `valid?/1`
-- Permutations use existing `Kaizen.Evolvable.List` (no redefinition)
+- `Jido.Evolve.Evolvable.Map` with `to_genome/1`, `from_genome/2`, `similarity/2`, `valid?/1`
+- Permutations use existing `Jido.Evolve.Evolvable.List` (no redefinition)
 
 ## Examples Overview
 
@@ -117,7 +117,7 @@ Added complete protocol implementations:
 ## Fixed Issues
 
 ### TSP Demo Infinite Loop (RESOLVED)
-**Root Cause**: Infinite recursion in `Kaizen.Crossover.PMX.map_value/3`
+**Root Cause**: Infinite recursion in `Jido.Evolve.Crossover.PMX.map_value/3`
 
 The PMX crossover implementation had a critical bug causing infinite loops during evolution. The recursive `map_value/3` function would follow mapping chains indefinitely when cycles existed in the parent-to-child segment mapping.
 
@@ -126,7 +126,7 @@ The PMX crossover implementation had a critical bug causing infinite loops durin
 - Modified `map_value/3` to track visited values and break cycles
 - Returns value as-is when a cycle is detected
 
-**File**: `lib/kaizen/crossover/pmx.ex` (lines 75-94)
+**File**: `lib/jido_evolve/crossover/pmx.ex` (lines 75-94)
 
 **Result**: TSP demo now runs without hanging
 

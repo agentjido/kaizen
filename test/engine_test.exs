@@ -1,14 +1,14 @@
-defmodule Kaizen.EngineTest do
+defmodule Jido.Evolve.EngineTest do
   use ExUnit.Case, async: true
 
-  alias Kaizen.{Engine, Config}
+  alias Jido.Evolve.{Config, Engine}
 
   describe "evolve/5 stream shape and termination" do
     test "returns a Stream that yields states" do
       config = Config.new!(population_size: 4, generations: 2, mutation_rate: 0.5)
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
-      stream = Engine.evolve(initial_pop, config, TestFitness, Kaizen.Evolvable.String)
+      stream = Engine.evolve(initial_pop, config, TestFitness, Jido.Evolve.Evolvable.String)
 
       assert is_function(stream)
       assert Enumerable.impl_for(stream) != nil
@@ -20,7 +20,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Should yield exactly 1 state (generation 0)
@@ -34,7 +34,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Should yield exactly 2 states (generations 0 and 1)
@@ -49,7 +49,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Should yield exactly 3 states (generations 0, 1, and 2)
@@ -72,7 +72,7 @@ defmodule Kaizen.EngineTest do
 
       # Create a custom mutation module that adds "_custom" instead of "_mutated"
       defmodule CustomMutation do
-        @behaviour Kaizen.Mutation
+        @behaviour Jido.Evolve.Mutation
 
         def mutate(entity, _opts) when is_binary(entity) do
           {:ok, entity <> "_custom"}
@@ -83,7 +83,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String,
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String,
           mutation_module: CustomMutation
         )
         |> Enum.to_list()
@@ -109,7 +109,7 @@ defmodule Kaizen.EngineTest do
 
       # Create a custom selection module that always selects the shortest strings
       defmodule CustomSelection do
-        @behaviour Kaizen.Selection
+        @behaviour Jido.Evolve.Selection
 
         def select(population, scores, count, _opts) do
           population
@@ -122,7 +122,7 @@ defmodule Kaizen.EngineTest do
 
       [final_state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String,
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String,
           selection_module: CustomSelection
         )
         |> Enum.to_list()
@@ -139,7 +139,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # TestFitness returns score based on string length
@@ -151,7 +151,7 @@ defmodule Kaizen.EngineTest do
 
     test "fitness.evaluate returns {:ok, %{score: score}} → metadata handled" do
       defmodule MetadataFitness do
-        @behaviour Kaizen.Fitness
+        @behaviour Jido.Evolve.Fitness
 
         def evaluate(entity, _context) do
           score = entity |> to_string() |> String.length() |> to_float()
@@ -175,7 +175,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, MetadataFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, MetadataFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Metadata format should be handled correctly
@@ -191,7 +191,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # All entities should be evaluated
@@ -215,7 +215,7 @@ defmodule Kaizen.EngineTest do
       # TestFitness supports :return_error context flag
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String,
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String,
           context: %{return_error: true}
         )
         |> Enum.to_list()
@@ -237,7 +237,7 @@ defmodule Kaizen.EngineTest do
       initial_pop = ["quick", "slow"]
 
       defmodule TimeoutFitness do
-        @behaviour Kaizen.Fitness
+        @behaviour Jido.Evolve.Fitness
 
         def evaluate(entity, _context) do
           # Simulate a very slow evaluation that would timeout
@@ -259,7 +259,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TimeoutFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TimeoutFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Both entities should be evaluated (no actual timeout in this simplified test)
@@ -276,7 +276,7 @@ defmodule Kaizen.EngineTest do
 
       # Mixed scenario: some entities will error, some will succeed
       defmodule MixedFitness do
-        @behaviour Kaizen.Fitness
+        @behaviour Jido.Evolve.Fitness
 
         def evaluate(entity, _context) do
           length = String.length(entity)
@@ -304,7 +304,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, MixedFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, MixedFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Only even-length strings should have scores
@@ -333,12 +333,12 @@ defmodule Kaizen.EngineTest do
       :telemetry.attach_many(
         handler_id,
         [
-          [:kaizen, :evolution, :start],
-          [:kaizen, :evolution, :stop],
-          [:kaizen, :generation, :start],
-          [:kaizen, :generation, :stop],
-          [:kaizen, :evaluation, :start],
-          [:kaizen, :evaluation, :stop]
+          [:jido_evolve, :evolution, :start],
+          [:jido_evolve, :evolution, :stop],
+          [:jido_evolve, :generation, :start],
+          [:jido_evolve, :generation, :stop],
+          [:jido_evolve, :evaluation, :start],
+          [:jido_evolve, :evaluation, :stop]
         ],
         fn event, measurements, metadata, _config ->
           send(test_pid, {:telemetry, event, measurements, metadata})
@@ -351,51 +351,52 @@ defmodule Kaizen.EngineTest do
       :ok
     end
 
-    test "[:kaizen, :evolution, :start] and [:kaizen, :evolution, :stop] events fire" do
+    test "[:jido_evolve, :evolution, :start] and [:jido_evolve, :evolution, :stop] events fire" do
       config = Config.new!(population_size: 4, generations: 1)
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
       |> Enum.to_list()
 
       # Should receive evolution start event
-      assert_receive {:telemetry, [:kaizen, :evolution, :start], %{population_size: 4},
+      assert_receive {:telemetry, [:jido_evolve, :evolution, :start], %{population_size: 4},
                       %{config: ^config}}
 
       # Should receive evolution stop event
-      assert_receive {:telemetry, [:kaizen, :evolution, :stop], %{generation: _}, %{state: _}}
+      assert_receive {:telemetry, [:jido_evolve, :evolution, :stop], %{generation: _},
+                      %{state: _}}
     end
 
-    test "[:kaizen, :generation, :start] and [:kaizen, :generation, :stop] events fire" do
+    test "[:jido_evolve, :generation, :start] and [:jido_evolve, :generation, :stop] events fire" do
       config = Config.new!(population_size: 4, generations: 2)
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
       |> Enum.to_list()
 
       # Should receive generation start event for generation 1
-      assert_receive {:telemetry, [:kaizen, :generation, :start], %{generation: 1}, %{}}
+      assert_receive {:telemetry, [:jido_evolve, :generation, :start], %{generation: 1}, %{}}
 
       # Should receive generation stop event for generation 1
-      assert_receive {:telemetry, [:kaizen, :generation, :stop], %{generation: 1, best_score: _},
-                      %{state: _}}
+      assert_receive {:telemetry, [:jido_evolve, :generation, :stop],
+                      %{generation: 1, best_score: _}, %{state: _}}
     end
 
-    test "[:kaizen, :evaluation, :start] and [:kaizen, :evaluation, :stop] events fire" do
+    test "[:jido_evolve, :evaluation, :start] and [:jido_evolve, :evaluation, :stop] events fire" do
       config = Config.new!(population_size: 4, generations: 1)
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
       |> Enum.to_list()
 
       # Should receive at least one evaluation start event (initial population)
-      assert_receive {:telemetry, [:kaizen, :evaluation, :start], %{population_size: 4}, %{}}
+      assert_receive {:telemetry, [:jido_evolve, :evaluation, :start], %{population_size: 4}, %{}}
 
       # Should receive at least one evaluation stop event
-      assert_receive {:telemetry, [:kaizen, :evaluation, :stop], %{evaluated_count: _}, %{}}
+      assert_receive {:telemetry, [:jido_evolve, :evaluation, :stop], %{evaluated_count: _}, %{}}
     end
 
     test "events fire in correct order for 2 generations" do
@@ -403,7 +404,7 @@ defmodule Kaizen.EngineTest do
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
       |> Enum.to_list()
 
       # Collect all events
@@ -414,11 +415,11 @@ defmodule Kaizen.EngineTest do
 
       # Find key events - evolution and evaluation happen, order may vary slightly
       # due to async processing, but key events should be present
-      assert [:kaizen, :evolution, :start] in event_names
-      assert [:kaizen, :evaluation, :start] in event_names
-      assert [:kaizen, :generation, :start] in event_names
-      assert [:kaizen, :generation, :stop] in event_names
-      assert [:kaizen, :evolution, :stop] in event_names
+      assert [:jido_evolve, :evolution, :start] in event_names
+      assert [:jido_evolve, :evaluation, :start] in event_names
+      assert [:jido_evolve, :generation, :start] in event_names
+      assert [:jido_evolve, :generation, :stop] in event_names
+      assert [:jido_evolve, :evolution, :stop] in event_names
     end
   end
 
@@ -452,7 +453,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Get generation 1 population
@@ -493,7 +494,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -531,7 +532,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -571,7 +572,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -605,7 +606,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -639,7 +640,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -661,7 +662,7 @@ defmodule Kaizen.EngineTest do
     test "mutation returns {:error, _} → child passed through unchanged (with warning)" do
       # Create a mutation module that returns errors
       defmodule ErrorMutation do
-        @behaviour Kaizen.Mutation
+        @behaviour Jido.Evolve.Mutation
 
         def mutate(_entity, _opts) do
           {:error, :deliberate_mutation_error}
@@ -686,7 +687,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -715,7 +716,7 @@ defmodule Kaizen.EngineTest do
     test "TestSelection returns odd-length list → handle single parent case" do
       # Create a selection module that returns odd number of parents
       defmodule OddSelection do
-        @behaviour Kaizen.Selection
+        @behaviour Jido.Evolve.Selection
 
         def select(population, scores, count, _opts) do
           # Return odd number of parents (count - 1 if count is even)
@@ -745,7 +746,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -766,7 +767,7 @@ defmodule Kaizen.EngineTest do
     test "odd parents with mutation_rate = 0.0 → single parent passed through" do
       # Test that single parent is passed through when mutation doesn't occur
       defmodule OddSelection2 do
-        @behaviour Kaizen.Selection
+        @behaviour Jido.Evolve.Selection
 
         def select(population, scores, count, _opts) do
           # Always return odd number
@@ -796,7 +797,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -834,7 +835,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -873,7 +874,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -882,7 +883,7 @@ defmodule Kaizen.EngineTest do
       assert length(final_state.population) == 10
 
       # Elite count should be 2 (20% of 10)
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 2
 
       # Best entities from previous generation should be present
@@ -917,7 +918,7 @@ defmodule Kaizen.EngineTest do
 
         states =
           initial_pop
-          |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+          |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
           |> Enum.to_list()
 
         final_state = List.last(states)
@@ -948,10 +949,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 1
 
       [gen0, gen1, gen2] = states
@@ -995,10 +996,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1] = states
@@ -1045,10 +1046,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 3
 
       [gen0, gen1] = states
@@ -1085,10 +1086,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1] = states
@@ -1127,10 +1128,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1, gen2, gen3] = states
@@ -1167,10 +1168,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 0
 
       [_gen0, gen1] = states
@@ -1196,10 +1197,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 1
 
       [gen0] = states
@@ -1226,10 +1227,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 4
 
       [_gen0, gen1] = states
@@ -1240,7 +1241,7 @@ defmodule Kaizen.EngineTest do
 
     test "all offspring have lower fitness than elites → elites dominate population" do
       defmodule AlwaysWorseSelection do
-        @behaviour Kaizen.Selection
+        @behaviour Jido.Evolve.Selection
 
         def select(_population, _scores, count, _opts) do
           Enum.map(1..count, fn _ -> "x" end)
@@ -1264,10 +1265,10 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
-      elite_count = Kaizen.Config.elite_count(config)
+      elite_count = Jido.Evolve.Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1] = states
@@ -1304,7 +1305,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       assert state.diversity != nil, "Diversity should be calculated"
@@ -1331,7 +1332,7 @@ defmodule Kaizen.EngineTest do
 
       [identical_state] =
         identical_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Use diverse strings → should have higher diversity
@@ -1339,7 +1340,7 @@ defmodule Kaizen.EngineTest do
 
       [diverse_state] =
         diverse_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       assert identical_state.diversity != nil
@@ -1368,7 +1369,7 @@ defmodule Kaizen.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       assert length(states) == 3
@@ -1403,17 +1404,17 @@ defmodule Kaizen.EngineTest do
 
       [very_similar_state] =
         very_similar
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       [somewhat_diverse_state] =
         somewhat_diverse
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       [very_diverse_state] =
         very_diverse
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # All should have diversity calculated
@@ -1449,7 +1450,7 @@ defmodule Kaizen.EngineTest do
 
       [state] =
         population
-        |> Engine.evolve(config, TestFitness, Kaizen.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
         |> Enum.to_list()
 
       # Verify diversity is based on Jaro distance (inverted) for strings

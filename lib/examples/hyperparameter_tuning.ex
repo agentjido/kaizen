@@ -1,4 +1,4 @@
-defmodule Kaizen.Examples.HyperparameterTuning do
+defmodule Jido.Evolve.Examples.HyperparameterTuning do
   @moduledoc """
   Hyperparameter Optimization: Evolve ML model hyperparameters for best performance.
 
@@ -37,7 +37,7 @@ defmodule Kaizen.Examples.HyperparameterTuning do
 
   ## Usage
 
-      iex> Kaizen.Examples.HyperparameterTuning.run()
+      iex> Jido.Evolve.Examples.HyperparameterTuning.run()
       # Evolution progress shown...
       # Converges to good hyperparameter configuration
 
@@ -47,7 +47,7 @@ defmodule Kaizen.Examples.HyperparameterTuning do
   demonstrating schema-aware mutation and crossover.
   """
 
-  alias Kaizen.Examples.Utils
+  alias Jido.Evolve.Examples.Utils
 
   @schema %{
     learning_rate: {:float, {1.0e-5, 1.0e-1}, :log},
@@ -57,7 +57,7 @@ defmodule Kaizen.Examples.HyperparameterTuning do
     batch_size: {:enum, [16, 32, 64, 128]}
   }
 
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
 
   @impl true
   def evaluate(hparams, context) do
@@ -98,7 +98,7 @@ defmodule Kaizen.Examples.HyperparameterTuning do
     # Generate initial population from schema
     initial_population =
       Enum.map(1..population_size, fn _ ->
-        Kaizen.Evolvable.HParams.new(@schema)
+        Jido.Evolve.Evolvable.HParams.new(@schema)
       end)
 
     context = %{
@@ -116,25 +116,25 @@ defmodule Kaizen.Examples.HyperparameterTuning do
     end
 
     {:ok, config} =
-      Kaizen.Config.new(
+      Jido.Evolve.Config.new(
         population_size: population_size,
         generations: generations,
         mutation_rate: 0.3,
         crossover_rate: 0.7,
         elitism_rate: 0.02,
-        selection_strategy: Kaizen.Selection.Tournament,
-        mutation_strategy: Kaizen.Mutation.HParams,
-        crossover_strategy: Kaizen.Crossover.MapUniform,
+        selection_strategy: Jido.Evolve.Selection.Tournament,
+        mutation_strategy: Jido.Evolve.Mutation.HParams,
+        crossover_strategy: Jido.Evolve.Crossover.MapUniform,
         termination_criteria: [target_fitness: 0.95]
       )
 
     result =
       try do
-        Kaizen.evolve(
+        Jido.Evolve.evolve(
           initial_population: initial_population,
           config: config,
           fitness: __MODULE__,
-          evolvable: Kaizen.Evolvable.Map,
+          evolvable: Jido.Evolve.Evolvable.Map,
           context: context
         )
         |> Stream.with_index()

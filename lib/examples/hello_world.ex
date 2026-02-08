@@ -1,13 +1,13 @@
-defmodule Kaizen.Examples.HelloWorld do
+defmodule Jido.Evolve.Examples.HelloWorld do
   @moduledoc """
   A simple example of evolving text towards a target string.
 
-  This example demonstrates how to use Kaizen to evolve a string
+  This example demonstrates how to use Jido.Evolve to evolve a string
   towards the target "Hello, world!" using random mutations and
   tournament selection with adaptive mutation rates.
   """
 
-  use Kaizen.Fitness
+  use Jido.Evolve.Fitness
 
   @target "Hello, world!"
 
@@ -57,10 +57,10 @@ defmodule Kaizen.Examples.HelloWorld do
   ## Examples
 
       # Run with defaults
-      Kaizen.Examples.HelloWorld.run()
+      Jido.Evolve.Examples.HelloWorld.run()
       
       # Run with custom settings
-      Kaizen.Examples.HelloWorld.run(
+      Jido.Evolve.Examples.HelloWorld.run(
         population_size: 50,
         mutation_rate: 0.6,
         verbose: true
@@ -78,15 +78,15 @@ defmodule Kaizen.Examples.HelloWorld do
 
     # Create configuration with adaptive mutation
     {:ok, config} =
-      Kaizen.Config.new(
+      Jido.Evolve.Config.new(
         population_size: population_size,
         generations: generations,
         mutation_rate: mutation_rate,
         crossover_rate: crossover_rate,
         elitism_rate: elitism_rate,
-        selection_strategy: Kaizen.Selection.Tournament,
-        mutation_strategy: Kaizen.Mutation.AdaptiveText,
-        crossover_strategy: Kaizen.Crossover.String,
+        selection_strategy: Jido.Evolve.Selection.Tournament,
+        mutation_strategy: Jido.Evolve.Mutation.AdaptiveText,
+        crossover_strategy: Jido.Evolve.Crossover.String,
         termination_criteria: [target_fitness: target_fitness]
       )
 
@@ -101,11 +101,11 @@ defmodule Kaizen.Examples.HelloWorld do
 
     # Run evolution
     result =
-      Kaizen.evolve(
+      Jido.Evolve.evolve(
         initial_population: seed,
         config: config,
         fitness: __MODULE__,
-        evolvable: Kaizen.Evolvable.String
+        evolvable: Jido.Evolve.Evolvable.String
       )
       |> Stream.with_index()
       |> Stream.map(fn {state, generation} ->
@@ -158,7 +158,7 @@ defmodule Kaizen.Examples.HelloWorld do
   Run a quick demo that prints progress.
   """
   def demo do
-    IO.puts("Kaizen Hello World Evolution Demo")
+    IO.puts("Jido.Evolve Hello World Evolution Demo")
     IO.puts("=" |> String.duplicate(40))
 
     run(verbose: true)
@@ -167,8 +167,6 @@ defmodule Kaizen.Examples.HelloWorld do
   defp random_string do
     chars = String.graphemes("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ,!?")
 
-    1..String.length(@target)
-    |> Enum.map(fn _ -> Enum.random(chars) end)
-    |> Enum.join()
+    Enum.map_join(1..String.length(@target), "", fn _ -> Enum.random(chars) end)
   end
 end

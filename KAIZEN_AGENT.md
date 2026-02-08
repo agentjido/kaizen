@@ -2,7 +2,7 @@
 
 ## Overview
 
-Kaizen's architecture naturally supports **multiple LLM "actors"** (judges, critics, refiners, adversaries) providing complementary perspectives during evolution. Each actor is a uniquely prompted LLM call with a specific role, enabling:
+Jido.Evolve's architecture naturally supports **multiple LLM "actors"** (judges, critics, refiners, adversaries) providing complementary perspectives during evolution. Each actor is a uniquely prompted LLM call with a specific role, enabling:
 
 - **Multi-perspective fitness evaluation** - Different actors score candidates from different viewpoints
 - **Ensemble feedback for mutation** - Structured improvement suggestions from multiple specialized actors
@@ -21,9 +21,9 @@ This approach extends GEPA's single-reflector pattern to an **actor ensemble** w
 
 **Attribution**: Track which actors' suggestions are applied and correlate with fitness improvements
 
-## How Kaizen Supports Multi-Agent Evolution
+## How Jido.Evolve Supports Multi-Agent Evolution
 
-Kaizen's pluggable architecture requires **no core changes**:
+Jido.Evolve's pluggable architecture requires **no core changes**:
 
 **Fitness behavior** - Wrap multiple actor evaluations, aggregate to scalar fitness, store per-actor scores/feedback in metadata
 
@@ -40,7 +40,7 @@ Kaizen's pluggable architecture requires **no core changes**:
 ### 1. Actor Definition
 
 ```elixir
-defmodule Kaizen.Agent.Actor do
+defmodule Jido.Evolve.Agent.Actor do
   @enforce_keys [:id, :role, :model, :prompt_fn]
   defstruct [
     :id,           # :accuracy, :safety, :cost, :refiner, :adversary
@@ -57,7 +57,7 @@ end
 ### 2. Ensemble Orchestrator
 
 ```elixir
-defmodule Kaizen.Agent.Ensemble do
+defmodule Jido.Evolve.Agent.Ensemble do
   @default_max_concurrency System.schedulers_online()
 
   def evaluate_and_feedback(entity, ctx) do
@@ -74,7 +74,7 @@ defmodule Kaizen.Agent.Ensemble do
     |> Enum.reduce(%{scores: %{}, feedback: %{}, raw: %{}}, &accumulate/2)
   end
 
-  defp call_actor(%Kaizen.Agent.Actor{} = actor, entity, ctx) do
+  defp call_actor(%Jido.Evolve.Agent.Actor{} = actor, entity, ctx) do
     {system, user} = actor.prompt_fn.(entity, ctx)
     {:ok, raw} = call_llm(actor.model, [system, user], temperature: 0.1)
     parsed = actor.parse_fn.(raw)
@@ -175,12 +175,12 @@ end
 ### 4. Multi-Actor Fitness
 
 ```elixir
-defmodule Kaizen.PromptEvolution.MultiActorFitness do
-  use Kaizen.Fitness
+defmodule Jido.Evolve.PromptEvolution.MultiActorFitness do
+  use Jido.Evolve.Fitness
 
   @impl true
   def evaluate(entity, ctx) do
-    result = Kaizen.Agent.Ensemble.evaluate_and_feedback(entity, ctx)
+    result = Jido.Evolve.Agent.Ensemble.evaluate_and_feedback(entity, ctx)
     
     weights = ctx.actors |> Map.new(&{&1.id, &1.weight})
 
@@ -211,7 +211,7 @@ end
 ### 5. Feedback Aggregation
 
 ```elixir
-defmodule Kaizen.Agent.FeedbackAggregator do
+defmodule Jido.Evolve.Agent.FeedbackAggregator do
   def consolidate(actor_feedback_map, opts \\ []) do
     top_k = Keyword.get(opts, :top_k, 5)
     
@@ -251,8 +251,8 @@ end
 ### 6. Multi-Actor Mutation
 
 ```elixir
-defmodule Kaizen.PromptEvolution.MultiActorMutator do
-  @behaviour Kaizen.Mutation
+defmodule Jido.Evolve.PromptEvolution.MultiActorMutator do
+  @behaviour Jido.Evolve.Mutation
 
   @impl true
   def mutate(entity, opts), do: mutate_with_feedback(entity, %{}, opts)
@@ -262,7 +262,7 @@ defmodule Kaizen.PromptEvolution.MultiActorMutator do
     consolidated =
       feedback
       |> Map.get(:actor_feedback, %{})
-      |> Kaizen.Agent.FeedbackAggregator.consolidate(top_k: Keyword.get(opts, :top_k, 5))
+      |> Jido.Evolve.Agent.FeedbackAggregator.consolidate(top_k: Keyword.get(opts, :top_k, 5))
 
     new_text =
       Enum.reduce(consolidated, entity.text, fn suggestion, acc ->
@@ -297,7 +297,7 @@ end
 ### 7. Attribution Tracking
 
 ```elixir
-defmodule Kaizen.Agent.Attribution do
+defmodule Jido.Evolve.Agent.Attribution do
   def credit(entity, previous_score, new_score) do
     delta = max(new_score - previous_score, 0.0)
     
@@ -329,7 +329,7 @@ end
 ```elixir
 # Define actor ensemble
 actors = [
-  %Kaizen.Agent.Actor{
+  %Jido.Evolve.Agent.Actor{
     id: :accuracy,
     role: "Accuracy Judge",
     model: "openai:gpt-4o-mini",
@@ -338,7 +338,7 @@ actors = [
     weight: 2.0,
     kind: :judge
   },
-  %Kaizen.Agent.Actor{
+  %Jido.Evolve.Agent.Actor{
     id: :safety,
     role: "Safety Judge",
     model: "anthropic:claude-3-haiku",
@@ -347,7 +347,7 @@ actors = [
     weight: 1.5,
     kind: :judge
   },
-  %Kaizen.Agent.Actor{
+  %Jido.Evolve.Agent.Actor{
     id: :refiner,
     role: "Improvement Refiner",
     model: "openai:gpt-4o-mini",
@@ -359,13 +359,13 @@ actors = [
 ]
 
 # Configure evolution
-config = Kaizen.Config.new!(
+config = Jido.Evolve.Config.new!(
   population_size: 30,
   generations: 40,
   mutation_rate: 0.3,
   crossover_rate: 0.5,
   elitism_rate: 0.1,
-  selection_strategy: Kaizen.Selection.Tournament
+  selection_strategy: Jido.Evolve.Selection.Tournament
 )
 
 # Evolution context with actors
@@ -380,12 +380,12 @@ ctx = %{
 initial_population = generate_initial_prompts(10)
 
 results =
-  Kaizen.evolve(
+  Jido.Evolve.evolve(
     initial_population: initial_population,
     config: config,
-    fitness: Kaizen.PromptEvolution.MultiActorFitness,
-    evolvable: Kaizen.Evolvable.String,
-    mutation: Kaizen.PromptEvolution.MultiActorMutator,
+    fitness: Jido.Evolve.PromptEvolution.MultiActorFitness,
+    evolvable: Jido.Evolve.Evolvable.String,
+    mutation: Jido.Evolve.PromptEvolution.MultiActorMutator,
     context: ctx
   )
   |> Enum.take(40)
@@ -398,7 +398,7 @@ IO.inspect(best.metadata.contributors, label: "Actor Contributions")
 
 ## Comparison to GEPA
 
-| Aspect | GEPA | Multi-Agent Kaizen |
+| Aspect | GEPA | Multi-Agent Jido.Evolve |
 |--------|------|-------------------|
 | **Actors** | Single reflector LLM | Multiple specialized actors (judges, refiners, adversaries) |
 | **Evaluation** | Single feedback stream | Parallel ensemble evaluation |
@@ -451,8 +451,8 @@ IO.inspect(best.metadata.contributors, label: "Actor Contributions")
 
 **Pareto Multi-Objective Selection**:
 ```elixir
-defmodule Kaizen.Selection.Pareto do
-  use Kaizen.Selection
+defmodule Jido.Evolve.Selection.Pareto do
+  use Jido.Evolve.Selection
 
   @impl true
   def select(population, _scores, count, opts) do
@@ -473,7 +473,7 @@ end
 
 **Dynamic Actor Weighting**:
 ```elixir
-defmodule Kaizen.Agent.DynamicWeighting do
+defmodule Jido.Evolve.Agent.DynamicWeighting do
   def adjust_weights(actors, generation_results) do
     Enum.map(actors, fn actor ->
       credit = calculate_credit(actor.id, generation_results)
@@ -517,7 +517,7 @@ Track via telemetry or metadata:
 
 ```elixir
 defmodule MyTelemetry do
-  def handle_event([:kaizen, :generation, :stop], measurements, metadata, _config) do
+  def handle_event([:jido_evolve, :generation, :stop], measurements, metadata, _config) do
     actor_stats = 
       metadata.state.population
       |> Enum.flat_map(&(&1.metadata.actor_objectives || []))
@@ -530,4 +530,4 @@ end
 
 ## Summary
 
-Kaizen's pluggable architecture enables sophisticated multi-agent LLM evolution **without core changes**. By wrapping actor ensembles in Fitness modules, consolidating feedback for Mutation, and optionally using Pareto Selection, you can leverage multiple specialized LLMs to evolve prompts, configurations, or any evolvable entity across multiple objectives with full attribution and observability.
+Jido.Evolve's pluggable architecture enables sophisticated multi-agent LLM evolution **without core changes**. By wrapping actor ensembles in Fitness modules, consolidating feedback for Mutation, and optionally using Pareto Selection, you can leverage multiple specialized LLMs to evolve prompts, configurations, or any evolvable entity across multiple objectives with full attribution and observability.

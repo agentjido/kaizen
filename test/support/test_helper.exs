@@ -8,7 +8,7 @@ defmodule TestFitness do
   - `:return_error` - returns {:error, :test_error}
   """
 
-  @behaviour Kaizen.Fitness
+  @behaviour Jido.Evolve.Fitness
 
   @impl true
   def evaluate(entity, context \\ %{}) do
@@ -46,7 +46,7 @@ defmodule TestSelection do
   Selects top-k entities by score in descending order.
   """
 
-  @behaviour Kaizen.Selection
+  @behaviour Jido.Evolve.Selection
 
   @impl true
   def select(population, scores, count, _opts) do
@@ -68,12 +68,12 @@ defmodule TestMutation do
   - `:mutation_strength` - custom strength value (default: 0.5)
   """
 
-  @behaviour Kaizen.Mutation
+  @behaviour Jido.Evolve.Mutation
 
   @impl true
   def mutate(entity, opts \\ []) do
     rate = Keyword.get(opts, :rate, 1.0)
-    
+
     if Keyword.get(opts, :return_error) do
       {:error, :mutation_failed}
     else
@@ -110,7 +110,7 @@ defmodule TestCrossover do
   For list entities, splits and recombines.
   """
 
-  @behaviour Kaizen.Crossover
+  @behaviour Jido.Evolve.Crossover
 
   @impl true
   def crossover(parent1, parent2, _config) do

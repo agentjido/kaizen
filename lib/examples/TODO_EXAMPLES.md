@@ -1,6 +1,6 @@
 # Example Implementations TODO
 
-This document outlines planned example implementations demonstrating Kaizen's capabilities across different problem domains and complexity levels.
+This document outlines planned example implementations demonstrating Jido.Evolve's capabilities across different problem domains and complexity levels.
 
 ## 1. String Evolution to Target ✅
 
@@ -16,9 +16,9 @@ This document outlines planned example implementations demonstrating Kaizen's ca
 - Simple selection pressure
 - Convergence observation
 
-**Kaizen Components**:
-- `Kaizen.Evolvable.String` (built-in)
-- `Kaizen.Mutation.Text` (built-in)
+**Jido.Evolve Components**:
+- `Jido.Evolve.Evolvable.String` (built-in)
+- `Jido.Evolve.Mutation.Text` (built-in)
 - Custom fitness module
 
 ---
@@ -244,7 +244,7 @@ Each example should include:
 Each example file should follow this structure:
 
 ```elixir
-defmodule Kaizen.Examples.ProblemName do
+defmodule Jido.Evolve.Examples.ProblemName do
   @moduledoc """
   Brief description of the problem.
   
@@ -259,7 +259,7 @@ defmodule Kaizen.Examples.ProblemName do
   
   ## Usage
   
-      iex> Kaizen.Examples.ProblemName.run()
+      iex> Jido.Evolve.Examples.ProblemName.run()
       # ... expected output
   
   ## Expected Results
@@ -277,4 +277,4 @@ end
 - Start simple: Focus on clear, well-documented examples
 - Performance secondary to clarity in examples
 - Include visualization helpers where appropriate (ASCII charts, data for plotting)
-- Consider adding `mix` tasks for easy running: `mix kaizen.example knapsack`
+- Consider adding `mix` tasks for easy running: `mix jido_evolve.example knapsack`
