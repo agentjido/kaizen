@@ -26,6 +26,23 @@ defmodule Jido.Evolve.ConfigTest do
     assert {:error, _} = Jido.Evolve.Config.new(mutation_rate: 1.5)
   end
 
+  test "validates evaluation timeout and termination criteria" do
+    assert {:error, %ArgumentError{message: message}} = Jido.Evolve.Config.new(evaluation_timeout: 0)
+    assert message =~ "evaluation_timeout must be a positive integer or :infinity"
+
+    assert {:ok, _config} = Jido.Evolve.Config.new(evaluation_timeout: :infinity)
+
+    assert {:error, %ArgumentError{message: criteria_message}} =
+             Jido.Evolve.Config.new(termination_criteria: %{max_generations: 10})
+
+    assert criteria_message =~ "termination_criteria must be a keyword list"
+  end
+
+  test "rejects non keyword/map config input" do
+    assert {:error, %ArgumentError{message: "config options must be a keyword list or map"}} =
+             Jido.Evolve.Config.new(:invalid)
+  end
+
   test "calculates elite count correctly" do
     {:ok, config} = Jido.Evolve.Config.new(population_size: 100, elitism_rate: 0.1)
     assert Jido.Evolve.Config.elite_count(config) == 10
@@ -33,5 +50,10 @@ defmodule Jido.Evolve.ConfigTest do
     {:ok, config} = Jido.Evolve.Config.new(population_size: 50, elitism_rate: 0.02)
     # Minimum of 1
     assert Jido.Evolve.Config.elite_count(config) == 1
+  end
+
+  test "init_random_seed handles nil and integer seeds" do
+    assert :ok = Jido.Evolve.Config.init_random_seed(Jido.Evolve.Config.new!())
+    assert :ok = Jido.Evolve.Config.init_random_seed(Jido.Evolve.Config.new!(random_seed: 123))
   end
 end

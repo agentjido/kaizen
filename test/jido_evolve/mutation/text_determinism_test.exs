@@ -100,5 +100,16 @@ defmodule Jido.Evolve.Mutation.TextDeterminismTest do
 
       assert String.length(result) == String.length(input)
     end
+
+    test "returns error for non-string entities" do
+      assert {:error, message} = Text.mutate(123, rate: 1.0)
+      assert message =~ "Text mutation only works with string entities"
+    end
+
+    test "mutation_strength/1 has an expected lower bound" do
+      assert Text.mutation_strength(0) == 1.0
+      assert Text.mutation_strength(100) < 1.0
+      assert Text.mutation_strength(10_000) == 0.1
+    end
   end
 end

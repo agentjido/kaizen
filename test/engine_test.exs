@@ -83,9 +83,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String,
-          mutation_module: CustomMutation
-        )
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String, mutation_module: CustomMutation)
         |> Enum.to_list()
 
       # Get the last state (generation 1)
@@ -122,9 +120,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [final_state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String,
-          selection_module: CustomSelection
-        )
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String, selection_module: CustomSelection)
         |> Enum.to_list()
 
       # Verify selection occurred
@@ -215,9 +211,7 @@ defmodule Jido.Evolve.EngineTest do
       # TestFitness supports :return_error context flag
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String,
-          context: %{return_error: true}
-        )
+        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String, context: %{return_error: true})
         |> Enum.to_list()
 
       # All entities should get score 0.0 when evaluation returns error
@@ -360,12 +354,10 @@ defmodule Jido.Evolve.EngineTest do
       |> Enum.to_list()
 
       # Should receive evolution start event
-      assert_receive {:telemetry, [:jido_evolve, :evolution, :start], %{population_size: 4},
-                      %{config: ^config}}
+      assert_receive {:telemetry, [:jido_evolve, :evolution, :start], %{population_size: 4}, %{config: ^config}}
 
       # Should receive evolution stop event
-      assert_receive {:telemetry, [:jido_evolve, :evolution, :stop], %{generation: _},
-                      %{state: _}}
+      assert_receive {:telemetry, [:jido_evolve, :evolution, :stop], %{generation: _}, %{state: _}}
     end
 
     test "[:jido_evolve, :generation, :start] and [:jido_evolve, :generation, :stop] events fire" do
@@ -380,8 +372,7 @@ defmodule Jido.Evolve.EngineTest do
       assert_receive {:telemetry, [:jido_evolve, :generation, :start], %{generation: 1}, %{}}
 
       # Should receive generation stop event for generation 1
-      assert_receive {:telemetry, [:jido_evolve, :generation, :stop],
-                      %{generation: 1, best_score: _}, %{state: _}}
+      assert_receive {:telemetry, [:jido_evolve, :generation, :stop], %{generation: 1, best_score: _}, %{state: _}}
     end
 
     test "[:jido_evolve, :evaluation, :start] and [:jido_evolve, :evaluation, :stop] events fire" do

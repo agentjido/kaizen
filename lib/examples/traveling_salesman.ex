@@ -118,7 +118,6 @@ defmodule Jido.Evolve.Examples.TravelingSalesman do
           initial_population: initial_population,
           config: config,
           fitness: __MODULE__,
-          evolvable: Jido.Evolve.Evolvable.List,
           context: context
         )
         |> Stream.with_index()

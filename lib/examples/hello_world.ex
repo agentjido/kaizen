@@ -104,15 +104,12 @@ defmodule Jido.Evolve.Examples.HelloWorld do
       Jido.Evolve.evolve(
         initial_population: seed,
         config: config,
-        fitness: __MODULE__,
-        evolvable: Jido.Evolve.Evolvable.String
+        fitness: __MODULE__
       )
       |> Stream.with_index()
       |> Stream.map(fn {state, generation} ->
         if verbose and rem(generation, 10) == 0 do
-          IO.puts(
-            "Generation #{generation}: #{state.best_entity} (fitness: #{Float.round(state.best_score, 4)})"
-          )
+          IO.puts("Generation #{generation}: #{state.best_entity} (fitness: #{Float.round(state.best_score, 4)})")
         end
 
         state

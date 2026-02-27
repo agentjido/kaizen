@@ -77,9 +77,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
       # Fitness function will sleep for 500ms, but timeout is 100ms
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String,
-          context: %{delay: 500}
-        )
+        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{delay: 500})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -103,9 +101,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
       # This should complete even though it takes 200ms per entity
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String,
-          context: %{delay: 200}
-        )
+        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{delay: 200})
         |> Enum.take(1)
 
       assert length(states) == 1

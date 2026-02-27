@@ -1,121 +1,43 @@
 defmodule Jido.Evolve.Config do
   @moduledoc """
-  Configuration structure for evolutionary algorithms.
+  Canonical configuration structure for evolutionary algorithms.
 
-  Uses NimbleOptions for validation and provides sensible defaults.
+  This module uses Zoi for validation and provides sensible defaults.
   """
 
-  use TypedStruct
   import Bitwise
 
-  typedstruct do
-    @typedoc "Configuration for evolutionary algorithms"
+  @schema Zoi.struct(
+            __MODULE__,
+            %{
+              population_size: Zoi.integer() |> Zoi.min(1) |> Zoi.default(100),
+              generations: Zoi.integer() |> Zoi.min(1) |> Zoi.default(1000),
+              mutation_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.1),
+              crossover_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.7),
+              elitism_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.05),
+              max_concurrency: Zoi.integer() |> Zoi.min(1) |> Zoi.default(System.schedulers_online()),
+              selection_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Selection.Tournament),
+              mutation_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Mutation.Text),
+              crossover_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Crossover.String),
+              termination_criteria: Zoi.any() |> Zoi.default([]),
+              checkpoint_interval: Zoi.integer() |> Zoi.min(1) |> Zoi.nullish(),
+              metrics_enabled: Zoi.boolean() |> Zoi.default(true),
+              random_seed: Zoi.integer() |> Zoi.nullish(),
+              tournament_size: Zoi.integer() |> Zoi.min(1) |> Zoi.default(2),
+              selection_pressure: Zoi.number() |> Zoi.min(0.0) |> Zoi.default(1.0),
+              evaluation_timeout: Zoi.any() |> Zoi.default(30_000)
+            },
+            coerce: true
+          )
 
-    field(:population_size, pos_integer(), default: 100)
-    field(:generations, pos_integer(), default: 1000)
-    field(:mutation_rate, float(), default: 0.1)
-    field(:crossover_rate, float(), default: 0.7)
-    field(:elitism_rate, float(), default: 0.05)
-    field(:max_concurrency, pos_integer(), default: System.schedulers_online())
-    field(:selection_strategy, atom(), default: Jido.Evolve.Selection.Tournament)
-    field(:mutation_strategy, atom(), default: Jido.Evolve.Mutation.Text)
-    field(:crossover_strategy, atom(), default: Jido.Evolve.Crossover.String)
-    field(:termination_criteria, keyword(), default: [])
-    field(:checkpoint_interval, pos_integer() | nil, default: nil)
-    field(:metrics_enabled, boolean(), default: true)
-    field(:random_seed, integer() | nil, default: nil)
-    field(:tournament_size, pos_integer(), default: 2)
-    field(:selection_pressure, float(), default: 1.0)
-    field(:evaluation_timeout, pos_integer() | :infinity, default: 30_000)
-  end
+  @type t :: unquote(Zoi.type_spec(@schema))
 
-  @config_schema [
-    population_size: [
-      type: :pos_integer,
-      default: 100,
-      doc: "Number of entities in the population"
-    ],
-    generations: [
-      type: :pos_integer,
-      default: 1000,
-      doc: "Maximum number of generations to evolve"
-    ],
-    mutation_rate: [
-      type: :float,
-      default: 0.1,
-      doc: """
-      Mutation rate passed to the mutation module (interpretation varies by module).
-      For Binary/Text/HParams mutations: per-gene probability.
-      For Permutation mutations: per-operation probability.
-      The mutation module controls its own probability logic using this value.
-      """
-    ],
-    crossover_rate: [
-      type: :float,
-      default: 0.7,
-      doc: "Probability of crossover between entities"
-    ],
-    elitism_rate: [
-      type: :float,
-      default: 0.05,
-      doc: "Fraction of best entities to preserve unchanged"
-    ],
-    max_concurrency: [
-      type: :pos_integer,
-      default: System.schedulers_online(),
-      doc: "Maximum number of concurrent fitness evaluations"
-    ],
-    selection_strategy: [
-      type: :atom,
-      default: Jido.Evolve.Selection.Tournament,
-      doc: "Module implementing Jido.Evolve.Selection behaviour"
-    ],
-    mutation_strategy: [
-      type: :atom,
-      default: Jido.Evolve.Mutation.Text,
-      doc: "Module implementing Jido.Evolve.Mutation behaviour"
-    ],
-    crossover_strategy: [
-      type: :atom,
-      default: Jido.Evolve.Crossover.String,
-      doc: "Module implementing Jido.Evolve.Crossover behaviour"
-    ],
-    termination_criteria: [
-      type: :keyword_list,
-      default: [],
-      doc: "Conditions for early termination"
-    ],
-    checkpoint_interval: [
-      type: {:or, [:pos_integer, nil]},
-      default: nil,
-      doc: "Save checkpoint every N generations"
-    ],
-    metrics_enabled: [
-      type: :boolean,
-      default: true,
-      doc: "Enable telemetry and metrics collection"
-    ],
-    random_seed: [
-      type: {:or, [:integer, nil]},
-      default: nil,
-      doc: "Random seed for reproducible results"
-    ],
-    tournament_size: [
-      type: :pos_integer,
-      default: 2,
-      doc: "Number of entities in each tournament (passed to selection module)"
-    ],
-    selection_pressure: [
-      type: :float,
-      default: 1.0,
-      doc: "Selection pressure multiplier (passed to selection module)"
-    ],
-    evaluation_timeout: [
-      type: {:or, [:pos_integer, {:in, [:infinity]}]},
-      default: 30_000,
-      doc: "Timeout in milliseconds for fitness evaluation (default: 30 seconds)"
-    ]
-  ]
+  @enforce_keys Zoi.Struct.enforce_keys(@schema)
+  defstruct Zoi.Struct.struct_fields(@schema)
+
+  @doc false
+  @spec schema() :: Zoi.schema()
+  def schema, do: @schema
 
   @doc """
   Create a new configuration with validation.
@@ -125,26 +47,25 @@ defmodule Jido.Evolve.Config do
       iex> {:ok, config} = Jido.Evolve.Config.new(population_size: 50)
       iex> config.population_size
       50
-      
-      iex> {:error, error} = Jido.Evolve.Config.new(population_size: -1)
-      iex> error.__struct__
-      NimbleOptions.ValidationError
-  """
-  @spec new(keyword()) :: {:ok, t()} | {:error, NimbleOptions.ValidationError.t()}
-  def new(opts \\ []) do
-    case NimbleOptions.validate(opts, @config_schema) do
-      {:ok, validated_opts} ->
-        config = struct(__MODULE__, validated_opts)
 
-        case validate_rates(config) do
-          :ok -> {:ok, config}
-          {:error, reason} -> {:error, %ArgumentError{message: reason}}
-        end
+      iex> {:error, _error} = Jido.Evolve.Config.new(population_size: -1)
+  """
+  @spec new(keyword() | map()) :: {:ok, t()} | {:error, term()}
+  def new(opts \\ [])
+
+  def new(opts) when is_list(opts) or is_map(opts) do
+    opts_map = normalize_opts(opts)
+
+    case Zoi.parse(@schema, opts_map) do
+      {:ok, config} ->
+        validate_custom(config)
 
       {:error, error} ->
         {:error, error}
     end
   end
+
+  def new(_opts), do: {:error, %ArgumentError{message: "config options must be a keyword list or map"}}
 
   @doc """
   Create a new configuration, raising on validation errors.
@@ -155,7 +76,7 @@ defmodule Jido.Evolve.Config do
       iex> config.population_size
       50
   """
-  @spec new!(keyword()) :: t()
+  @spec new!(keyword() | map()) :: t()
   def new!(opts \\ []) do
     case new(opts) do
       {:ok, config} -> config
@@ -186,28 +107,31 @@ defmodule Jido.Evolve.Config do
     :ok
   end
 
-  # Private helper to validate rate parameters
-  defp validate_rates(%__MODULE__{
-         mutation_rate: mr,
-         crossover_rate: cr,
-         elitism_rate: er,
-         selection_pressure: sp
-       }) do
+  defp normalize_opts(opts) when is_list(opts), do: Map.new(opts)
+  defp normalize_opts(opts) when is_map(opts), do: opts
+
+  defp validate_custom(config) do
     cond do
-      mr < 0.0 or mr > 1.0 ->
-        {:error, "mutation_rate must be between 0.0 and 1.0, got: #{mr}"}
+      config.evaluation_timeout == :infinity ->
+        validate_termination_criteria(config)
 
-      cr < 0.0 or cr > 1.0 ->
-        {:error, "crossover_rate must be between 0.0 and 1.0, got: #{cr}"}
-
-      er < 0.0 or er > 1.0 ->
-        {:error, "elitism_rate must be between 0.0 and 1.0, got: #{er}"}
-
-      sp < 0.0 ->
-        {:error, "selection_pressure must be non-negative, got: #{sp}"}
+      is_integer(config.evaluation_timeout) and config.evaluation_timeout > 0 ->
+        validate_termination_criteria(config)
 
       true ->
-        :ok
+        {:error,
+         %ArgumentError{
+           message:
+             "evaluation_timeout must be a positive integer or :infinity, got: #{inspect(config.evaluation_timeout)}"
+         }}
+    end
+  end
+
+  defp validate_termination_criteria(%__MODULE__{termination_criteria: criteria} = config) do
+    if is_list(criteria) and Keyword.keyword?(criteria) do
+      {:ok, config}
+    else
+      {:error, %ArgumentError{message: "termination_criteria must be a keyword list, got: #{inspect(criteria)}"}}
     end
   end
 end

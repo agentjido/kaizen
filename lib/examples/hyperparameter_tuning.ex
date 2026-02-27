@@ -134,7 +134,6 @@ defmodule Jido.Evolve.Examples.HyperparameterTuning do
           initial_population: initial_population,
           config: config,
           fitness: __MODULE__,
-          evolvable: Jido.Evolve.Evolvable.Map,
           context: context
         )
         |> Stream.with_index()

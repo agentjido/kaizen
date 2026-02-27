@@ -100,5 +100,9 @@ defmodule Jido.Evolve.Mutation.RandomDeterminismTest do
 
       assert String.length(result) == String.length(input)
     end
+
+    test "returns error tuple when entity does not implement Evolvable protocol" do
+      assert {:error, %Protocol.UndefinedError{}} = Random.mutate({:not, :evolvable}, rate: 0.5)
+    end
   end
 end

@@ -26,7 +26,7 @@ defmodule Jido.Evolve.Selection.Tournament do
     tournament_size = Keyword.get(opts, :tournament_size, 2)
     pressure = Keyword.get(opts, :pressure, 1.0)
 
-    if length(population) == 0 or map_size(scores) == 0 do
+    if Enum.empty?(population) or map_size(scores) == 0 do
       []
     else
       1..count
