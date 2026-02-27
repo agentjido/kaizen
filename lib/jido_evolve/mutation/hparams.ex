@@ -38,28 +38,24 @@ defmodule Jido.Evolve.Mutation.HParams do
 
   @impl true
   def mutate(hparams, opts) when is_map(hparams) do
-    if not has_schema?(opts) do
-      {:error, "HParams mutation requires :schema in opts"}
-    else
-      with {:ok, parsed_opts} <- parse_opts(opts) do
-        schema = Keyword.fetch!(parsed_opts, :schema)
-        rate = Keyword.fetch!(parsed_opts, :rate)
-        gaussian_scale = Keyword.fetch!(parsed_opts, :gaussian_scale)
+    with {:ok, parsed_opts} <- parse_opts(opts) do
+      schema = Keyword.fetch!(parsed_opts, :schema)
+      rate = Keyword.fetch!(parsed_opts, :rate)
+      gaussian_scale = Keyword.fetch!(parsed_opts, :gaussian_scale)
 
-        mutated =
-          Enum.map(hparams, fn {key, value} ->
-            spec = Map.get(schema, key)
+      mutated =
+        Enum.map(hparams, fn {key, value} ->
+          spec = Map.get(schema, key)
 
-            if spec && :rand.uniform() < rate do
-              {key, mutate_value(value, spec, gaussian_scale)}
-            else
-              {key, value}
-            end
-          end)
-          |> Map.new()
+          if spec && :rand.uniform() < rate do
+            {key, mutate_value(value, spec, gaussian_scale)}
+          else
+            {key, value}
+          end
+        end)
+        |> Map.new()
 
-        {:ok, mutated}
-      end
+      {:ok, mutated}
     end
   end
 
@@ -139,10 +135,6 @@ defmodule Jido.Evolve.Mutation.HParams do
   end
 
   defp random_value(_), do: 0
-
-  defp has_schema?(opts) when is_list(opts), do: Keyword.has_key?(opts, :schema)
-  defp has_schema?(opts) when is_map(opts), do: Map.has_key?(opts, :schema)
-  defp has_schema?(_opts), do: false
 
   defp parse_opts(opts) when is_map(opts), do: parse_opts(Map.to_list(opts))
 

@@ -7,7 +7,16 @@ defmodule Jido.Evolve.Config do
 
   import Bitwise
 
-  @termination_criteria_schema Zoi.list(Zoi.tuple({Zoi.atom(), Zoi.any()}))
+  @mutation_strategy_schema Zoi.atom() |> Zoi.refine({__MODULE__, :validate_mutation_strategy, []})
+  @selection_strategy_schema Zoi.atom() |> Zoi.refine({__MODULE__, :validate_selection_strategy, []})
+  @crossover_strategy_schema Zoi.atom() |> Zoi.refine({__MODULE__, :validate_crossover_strategy, []})
+
+  @termination_criterion_schema Zoi.union([
+                                  Zoi.tuple({Zoi.literal(:max_generations), Zoi.integer() |> Zoi.min(1)}),
+                                  Zoi.tuple({Zoi.literal(:target_fitness), Zoi.number()}),
+                                  Zoi.tuple({Zoi.literal(:no_improvement), Zoi.integer() |> Zoi.min(1)})
+                                ])
+  @termination_criteria_schema Zoi.list(@termination_criterion_schema)
 
   @schema Zoi.struct(
             __MODULE__,
@@ -18,9 +27,9 @@ defmodule Jido.Evolve.Config do
               crossover_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.7),
               elitism_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.05),
               max_concurrency: Zoi.integer() |> Zoi.min(1) |> Zoi.default(System.schedulers_online()),
-              selection_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Selection.Tournament),
-              mutation_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Mutation.Text),
-              crossover_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Crossover.String),
+              selection_strategy: @selection_strategy_schema |> Zoi.default(Jido.Evolve.Selection.Tournament),
+              mutation_strategy: @mutation_strategy_schema |> Zoi.default(Jido.Evolve.Mutation.Text),
+              crossover_strategy: @crossover_strategy_schema |> Zoi.default(Jido.Evolve.Crossover.String),
               termination_criteria: @termination_criteria_schema |> Zoi.default([]),
               checkpoint_interval: Zoi.integer() |> Zoi.min(1) |> Zoi.nullish(),
               metrics_enabled: Zoi.boolean() |> Zoi.default(true),
@@ -116,4 +125,32 @@ defmodule Jido.Evolve.Config do
 
   defp normalize_opts(opts) when is_list(opts), do: Map.new(opts)
   defp normalize_opts(opts) when is_map(opts), do: opts
+
+  @doc false
+  @spec validate_mutation_strategy(module(), keyword()) :: :ok | {:error, String.t()}
+  def validate_mutation_strategy(module, _opts) do
+    validate_strategy_module(module, :mutate, 2, "mutation_strategy must export mutate/2")
+  end
+
+  @doc false
+  @spec validate_selection_strategy(module(), keyword()) :: :ok | {:error, String.t()}
+  def validate_selection_strategy(module, _opts) do
+    validate_strategy_module(module, :select, 4, "selection_strategy must export select/4")
+  end
+
+  @doc false
+  @spec validate_crossover_strategy(module(), keyword()) :: :ok | {:error, String.t()}
+  def validate_crossover_strategy(module, _opts) do
+    validate_strategy_module(module, :crossover, 3, "crossover_strategy must export crossover/3")
+  end
+
+  defp validate_strategy_module(module, function, arity, message) when is_atom(module) do
+    if Code.ensure_loaded?(module) and function_exported?(module, function, arity) do
+      :ok
+    else
+      {:error, message}
+    end
+  end
+
+  defp validate_strategy_module(_module, _function, _arity, message), do: {:error, message}
 end

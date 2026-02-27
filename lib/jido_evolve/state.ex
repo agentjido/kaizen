@@ -20,7 +20,7 @@ defmodule Jido.Evolve.State do
               diversity: Zoi.number() |> Zoi.default(0.0),
               fitness_history: Zoi.list(Zoi.number()) |> Zoi.default([]),
               metadata: Zoi.map() |> Zoi.default(%{}),
-              config: Zoi.any()
+              config: Config.schema()
             },
             coerce: true
           )
@@ -43,7 +43,7 @@ defmodule Jido.Evolve.State do
 
     case Zoi.parse(@schema, attrs_map) do
       {:ok, state} ->
-        validate_config(state)
+        {:ok, state}
 
       {:error, error} ->
         {:error, error}
@@ -140,12 +140,6 @@ defmodule Jido.Evolve.State do
   def terminated?(%__MODULE__{config: config} = state) do
     criteria = config.termination_criteria
     Enum.any?(criteria, &check_criterion(state, &1))
-  end
-
-  defp validate_config(%__MODULE__{config: %Config{}} = state), do: {:ok, state}
-
-  defp validate_config(%__MODULE__{config: invalid}) do
-    {:error, %ArgumentError{message: "state config must be %Jido.Evolve.Config{}, got: #{inspect(invalid)}"}}
   end
 
   defp find_best(scores) when map_size(scores) == 0, do: {nil, 0.0}

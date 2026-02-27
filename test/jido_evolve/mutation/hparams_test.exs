@@ -3,8 +3,9 @@ defmodule Jido.Evolve.Mutation.HParamsTest do
 
   alias Jido.Evolve.Mutation.HParams
 
-  test "returns error without schema" do
-    assert {:error, "HParams mutation requires :schema in opts"} = HParams.mutate(%{lr: 0.01}, rate: 1.0)
+  test "returns validation error without schema" do
+    assert {:error, message} = HParams.mutate(%{lr: 0.01}, rate: 1.0)
+    assert message =~ "invalid hparams mutation opts"
   end
 
   test "returns error for non-map genome" do

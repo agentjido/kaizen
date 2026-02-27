@@ -4,13 +4,16 @@ defmodule Jido.Evolve.StateTest do
   alias Jido.Evolve.{Config, State}
 
   test "new/1 validates config type" do
-    assert {:error, %ArgumentError{message: message}} =
+    assert {:error, errors} =
              State.new(%{
                population: ["a"],
                config: :invalid
              })
 
-    assert message =~ "state config must be %Jido.Evolve.Config{}"
+    assert Enum.any?(errors, fn
+             %Zoi.Error{path: [:config]} -> true
+             _ -> false
+           end)
   end
 
   test "update_scores/2 sets best and average scores" do
@@ -125,7 +128,7 @@ defmodule Jido.Evolve.StateTest do
     assert State.terminated?(at_target_fitness)
   end
 
-  test "terminated?/1 handles no_improvement and unknown criteria" do
+  test "terminated?/1 handles no_improvement criteria" do
     config = Config.new!(termination_criteria: [no_improvement: 3])
 
     not_enough_history =
@@ -145,13 +148,5 @@ defmodule Jido.Evolve.StateTest do
       })
 
     assert State.terminated?(stable_history)
-
-    unknown_criterion =
-      State.new!(%{
-        population: ["a"],
-        config: Config.new!(termination_criteria: [unknown: :value])
-      })
-
-    refute State.terminated?(unknown_criterion)
   end
 end

@@ -2,7 +2,6 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
   use ExUnit.Case, async: true
 
   alias Jido.Evolve.{Config, Engine, State}
-  alias Jido.Evolve.Evolvable.String, as: EvolvableString
   alias TestEngine.SlowFitness
 
   describe "evaluation_timeout configuration" do
@@ -43,7 +42,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{delay: 10})
+        |> Engine.evolve(config, SlowFitness, context: %{delay: 10})
         |> Enum.take(2)
 
       assert length(states) == 2
@@ -65,7 +64,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
       # Fitness function will sleep for 500ms, but timeout is 100ms
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{delay: 500})
+        |> Engine.evolve(config, SlowFitness, context: %{delay: 500})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -89,7 +88,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
       # This should complete even though it takes 200ms per entity
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{delay: 200})
+        |> Engine.evolve(config, SlowFitness, context: %{delay: 200})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -114,7 +113,6 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
         Engine.evolution_step(
           state,
           SlowFitness,
-          EvolvableString,
           Jido.Evolve.Mutation.Text,
           Jido.Evolve.Selection.Tournament,
           Jido.Evolve.Crossover.String,
@@ -140,7 +138,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{})
+        |> Engine.evolve(config, SlowFitness, context: %{})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -158,7 +156,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{})
+        |> Engine.evolve(config, SlowFitness, context: %{})
         |> Enum.take(1)
 
       assert length(states) == 1

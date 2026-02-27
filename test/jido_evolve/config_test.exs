@@ -2,6 +2,8 @@ defmodule Jido.Evolve.ConfigTest do
   use ExUnit.Case
   doctest Jido.Evolve.Config
 
+  alias TestOptions.{InvalidCrossoverModule, InvalidMutationModule, InvalidSelectionModule}
+
   test "creates config with defaults" do
     {:ok, config} = Jido.Evolve.Config.new()
 
@@ -46,6 +48,37 @@ defmodule Jido.Evolve.ConfigTest do
 
     assert {:ok, _config} =
              Jido.Evolve.Config.new(termination_criteria: [max_generations: 10, target_fitness: 0.9])
+
+    assert {:error, invalid_criteria_errors} =
+             Jido.Evolve.Config.new(termination_criteria: [unknown: :value])
+
+    assert Enum.any?(invalid_criteria_errors, fn
+             %Zoi.Error{path: [:termination_criteria | _]} -> true
+             _ -> false
+           end)
+  end
+
+  test "validates strategy modules implement required callbacks" do
+    assert {:error, mutation_errors} = Jido.Evolve.Config.new(mutation_strategy: InvalidMutationModule)
+
+    assert Enum.any?(mutation_errors, fn
+             %Zoi.Error{path: [:mutation_strategy]} -> true
+             _ -> false
+           end)
+
+    assert {:error, selection_errors} = Jido.Evolve.Config.new(selection_strategy: InvalidSelectionModule)
+
+    assert Enum.any?(selection_errors, fn
+             %Zoi.Error{path: [:selection_strategy]} -> true
+             _ -> false
+           end)
+
+    assert {:error, crossover_errors} = Jido.Evolve.Config.new(crossover_strategy: InvalidCrossoverModule)
+
+    assert Enum.any?(crossover_errors, fn
+             %Zoi.Error{path: [:crossover_strategy]} -> true
+             _ -> false
+           end)
   end
 
   test "rejects non keyword/map config input" do

@@ -5,16 +5,22 @@ defmodule Jido.Evolve.Options do
 
   alias Jido.Evolve.{Config, Error}
 
+  @population_schema Zoi.list(Zoi.any()) |> Zoi.refine({__MODULE__, :validate_population, []})
+  @fitness_schema Zoi.any() |> Zoi.refine({__MODULE__, :validate_fitness, []})
+  @mutation_override_schema Zoi.any() |> Zoi.nullish() |> Zoi.refine({__MODULE__, :validate_mutation_override, []})
+  @selection_override_schema Zoi.any() |> Zoi.nullish() |> Zoi.refine({__MODULE__, :validate_selection_override, []})
+  @crossover_override_schema Zoi.any() |> Zoi.nullish() |> Zoi.refine({__MODULE__, :validate_crossover_override, []})
+
   @schema Zoi.struct(
             __MODULE__,
             %{
-              initial_population: Zoi.list(Zoi.any()),
-              fitness: Zoi.any(),
+              initial_population: @population_schema,
+              fitness: @fitness_schema,
               config: Zoi.any() |> Zoi.nullish(),
               context: Zoi.map() |> Zoi.default(%{}),
-              mutation: Zoi.any() |> Zoi.nullish(),
-              selection: Zoi.any() |> Zoi.nullish(),
-              crossover: Zoi.any() |> Zoi.nullish()
+              mutation: @mutation_override_schema,
+              selection: @selection_override_schema,
+              crossover: @crossover_override_schema
             },
             coerce: true
           )
@@ -36,8 +42,6 @@ defmodule Jido.Evolve.Options do
     opts_map = normalize_opts(opts)
 
     with {:ok, parsed} <- parse(opts_map),
-         :ok <- validate_population(parsed.initial_population),
-         :ok <- validate_fitness(parsed.fitness),
          {:ok, config} <- normalize_config(parsed.config),
          {:ok, mutation} <- resolve_strategy(parsed.mutation || config.mutation_strategy, :mutation),
          {:ok, selection} <- resolve_strategy(parsed.selection || config.selection_strategy, :selection),
@@ -79,26 +83,30 @@ defmodule Jido.Evolve.Options do
       {:ok, parsed} ->
         {:ok, parsed}
 
-      {:error, reason} ->
-        {:error, Error.validation_error("invalid evolve options", %{details: reason})}
+      {:error, errors} ->
+        {:error, zoi_validation_error(errors)}
     end
   end
 
-  defp validate_population(population) do
+  @doc false
+  @spec validate_population(list(any()), keyword()) :: :ok | {:error, String.t()}
+  def validate_population(population, _opts) when is_list(population) do
     if Enum.empty?(population) do
-      {:error, Error.validation_error("initial_population must not be empty", %{field: :initial_population})}
+      {:error, "initial_population must not be empty"}
     else
       :ok
     end
   end
 
-  defp validate_fitness(module) do
+  @doc false
+  @spec validate_fitness(any(), keyword()) :: :ok | {:error, String.t()}
+  def validate_fitness(module, _opts) do
     cond do
       not is_atom(module) ->
-        {:error, Error.validation_error("fitness must be a module", %{field: :fitness, value: module})}
+        {:error, "fitness must be a module"}
 
       not module_exports?(module, :evaluate, 2) ->
-        {:error, Error.validation_error("fitness module must export evaluate/2", %{field: :fitness, value: module})}
+        {:error, "fitness module must export evaluate/2"}
 
       true ->
         :ok
@@ -106,7 +114,7 @@ defmodule Jido.Evolve.Options do
   end
 
   defp normalize_config(nil), do: {:ok, Config.new!()}
-  defp normalize_config(%Config{} = config), do: {:ok, config}
+  defp normalize_config(%Config{} = config), do: normalize_config(Map.from_struct(config))
 
   defp normalize_config(config_opts) when is_list(config_opts) or is_map(config_opts) do
     case Config.new(config_opts) do
@@ -123,7 +131,7 @@ defmodule Jido.Evolve.Options do
   end
 
   defp resolve_strategy(module, :mutation) do
-    if module_exports?(module, :mutate, 2) do
+    if match?(:ok, validate_mutation_override(module, [])) do
       {:ok, module}
     else
       {:error, Error.validation_error("mutation strategy must export mutate/2", %{field: :mutation, value: module})}
@@ -131,7 +139,7 @@ defmodule Jido.Evolve.Options do
   end
 
   defp resolve_strategy(module, :selection) do
-    if module_exports?(module, :select, 4) do
+    if match?(:ok, validate_selection_override(module, [])) do
       {:ok, module}
     else
       {:error, Error.validation_error("selection strategy must export select/4", %{field: :selection, value: module})}
@@ -139,11 +147,47 @@ defmodule Jido.Evolve.Options do
   end
 
   defp resolve_strategy(module, :crossover) do
-    if module_exports?(module, :crossover, 3) do
+    if match?(:ok, validate_crossover_override(module, [])) do
       {:ok, module}
     else
       {:error,
        Error.validation_error("crossover strategy must export crossover/3", %{field: :crossover, value: module})}
+    end
+  end
+
+  @doc false
+  @spec validate_mutation_override(any(), keyword()) :: :ok | {:error, String.t()}
+  def validate_mutation_override(nil, _opts), do: :ok
+
+  def validate_mutation_override(module, _opts) do
+    if module_exports?(module, :mutate, 2) do
+      :ok
+    else
+      {:error, "mutation strategy must export mutate/2"}
+    end
+  end
+
+  @doc false
+  @spec validate_selection_override(any(), keyword()) :: :ok | {:error, String.t()}
+  def validate_selection_override(nil, _opts), do: :ok
+
+  def validate_selection_override(module, _opts) do
+    if module_exports?(module, :select, 4) do
+      :ok
+    else
+      {:error, "selection strategy must export select/4"}
+    end
+  end
+
+  @doc false
+  @spec validate_crossover_override(any(), keyword()) :: :ok | {:error, String.t()}
+  def validate_crossover_override(nil, _opts), do: :ok
+
+  def validate_crossover_override(module, _opts) do
+    if module_exports?(module, :crossover, 3) do
+      :ok
+    else
+      {:error, "crossover strategy must export crossover/3"}
     end
   end
 
@@ -152,4 +196,19 @@ defmodule Jido.Evolve.Options do
   end
 
   defp module_exports?(_module, _function, _arity), do: false
+
+  defp zoi_validation_error([first_error | _] = errors) do
+    field = List.first(first_error.path)
+
+    message =
+      if first_error.code == :custom do
+        first_error.message
+      else
+        "invalid evolve options"
+      end
+
+    Error.validation_error(message, %{field: field, details: Zoi.treefy_errors(errors)})
+  end
+
+  defp zoi_validation_error(_errors), do: Error.validation_error("invalid evolve options")
 end

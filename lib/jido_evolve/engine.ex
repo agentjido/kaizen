@@ -12,12 +12,9 @@ defmodule Jido.Evolve.Engine do
 
   @runtime_opts_schema Zoi.keyword(
                          [
-                           mutation: Zoi.any(),
-                           selection: Zoi.any(),
-                           crossover: Zoi.any(),
-                           mutation_module: Zoi.any(),
-                           selection_module: Zoi.any(),
-                           crossover_module: Zoi.any(),
+                           mutation: Zoi.atom() |> Zoi.refine({__MODULE__, :validate_mutation_module, []}),
+                           selection: Zoi.atom() |> Zoi.refine({__MODULE__, :validate_selection_module, []}),
+                           crossover: Zoi.atom() |> Zoi.refine({__MODULE__, :validate_crossover_module, []}),
                            context: Zoi.map() |> Zoi.default(%{})
                          ],
                          coerce: true
@@ -35,8 +32,6 @@ defmodule Jido.Evolve.Engine do
   - `:selection` - Module implementing `Jido.Evolve.Selection` (default from config)
   - `:crossover` - Module implementing `Jido.Evolve.Crossover` (default from config)
   - `:context` - Context map passed to fitness evaluation
-
-  Legacy keys (`:mutation_module`, `:selection_module`, `:crossover_module`) are still accepted.
   """
   @spec evolve(list(any()), Config.t(), module()) :: Enumerable.t()
   def evolve(initial_population, %Config{} = config, fitness_module) do
@@ -45,62 +40,54 @@ defmodule Jido.Evolve.Engine do
 
   @spec evolve(list(any()), Config.t(), module(), keyword()) :: Enumerable.t()
   def evolve(initial_population, %Config{} = config, fitness_module, opts) when is_list(opts) do
-    parsed_opts = parse_runtime_opts(opts)
+    with {:ok, parsed_opts} <- parse_runtime_opts(opts),
+         {:ok, mutation_module} <-
+           resolve_strategy(Keyword.get(parsed_opts, :mutation, config.mutation_strategy), :mutation),
+         {:ok, selection_module} <-
+           resolve_strategy(Keyword.get(parsed_opts, :selection, config.selection_strategy), :selection),
+         {:ok, crossover_module} <-
+           resolve_strategy(Keyword.get(parsed_opts, :crossover, config.crossover_strategy), :crossover) do
+      context = Keyword.get(parsed_opts, :context, %{})
 
-    mutation_module =
-      Keyword.get(parsed_opts, :mutation, Keyword.get(parsed_opts, :mutation_module, config.mutation_strategy))
+      Config.init_random_seed(config)
 
-    selection_module =
-      Keyword.get(parsed_opts, :selection, Keyword.get(parsed_opts, :selection_module, config.selection_strategy))
+      initial_state =
+        initial_population
+        |> State.new(config)
+        |> evaluate_population(fitness_module, context)
+        |> State.calculate_diversity()
 
-    crossover_module =
-      Keyword.get(parsed_opts, :crossover, Keyword.get(parsed_opts, :crossover_module, config.crossover_strategy))
+      maybe_emit(config, [:jido_evolve, :evolution, :start], %{population_size: length(initial_population)}, %{
+        config: config
+      })
 
-    context = Keyword.get(parsed_opts, :context, %{})
+      Stream.unfold(initial_state, fn state ->
+        if State.terminated?(state) or state.generation >= config.generations do
+          maybe_emit(config, [:jido_evolve, :evolution, :stop], %{generation: state.generation}, %{state: state})
+          nil
+        else
+          next_state =
+            evolution_step(
+              state,
+              fitness_module,
+              mutation_module,
+              selection_module,
+              crossover_module,
+              context
+            )
 
-    Config.init_random_seed(config)
-
-    initial_state =
-      initial_population
-      |> State.new(config)
-      |> evaluate_population(fitness_module, context)
-      |> State.calculate_diversity()
-
-    maybe_emit(config, [:jido_evolve, :evolution, :start], %{population_size: length(initial_population)}, %{
-      config: config
-    })
-
-    Stream.unfold(initial_state, fn state ->
-      if State.terminated?(state) or state.generation >= config.generations do
-        maybe_emit(config, [:jido_evolve, :evolution, :stop], %{generation: state.generation}, %{state: state})
-        nil
-      else
-        next_state =
-          evolution_step(
-            state,
-            fitness_module,
-            mutation_module,
-            selection_module,
-            crossover_module,
-            context
-          )
-
-        {state, next_state}
-      end
-    end)
+          {state, next_state}
+        end
+      end)
+    else
+      {:error, error} -> raise error
+    end
   end
 
   @doc false
-  @spec evolve(list(any()), Config.t(), module(), module()) :: Enumerable.t()
-  def evolve(initial_population, %Config{} = config, fitness_module, evolvable_module)
-      when is_atom(evolvable_module) do
-    evolve(initial_population, config, fitness_module, [])
-  end
-
-  @doc false
-  @spec evolve(list(any()), Config.t(), module(), module(), keyword()) :: Enumerable.t()
-  def evolve(initial_population, %Config{} = config, fitness_module, _evolvable_module, opts) do
-    evolve(initial_population, config, fitness_module, opts)
+  @spec evolve(list(any()), Config.t(), module(), any()) :: Enumerable.t()
+  def evolve(_initial_population, %Config{}, _fitness_module, _opts) do
+    raise Error.validation_error("engine options must be a keyword list", %{field: :opts})
   end
 
   @doc """
@@ -147,20 +134,6 @@ defmodule Jido.Evolve.Engine do
     )
 
     new_state
-  end
-
-  @doc false
-  @spec evolution_step(State.t(), module(), module(), module(), module(), module(), map()) :: State.t()
-  def evolution_step(
-        state,
-        fitness_module,
-        _evolvable_module,
-        mutation_module,
-        selection_module,
-        crossover_module,
-        context
-      ) do
-    evolution_step(state, fitness_module, mutation_module, selection_module, crossover_module, context)
   end
 
   defp evaluate_population(%State{population: population, config: config} = state, fitness_module, context) do
@@ -311,13 +284,98 @@ defmodule Jido.Evolve.Engine do
   end
 
   defp parse_runtime_opts(opts) do
-    case Zoi.parse(@runtime_opts_schema, opts) do
-      {:ok, parsed_opts} ->
-        parsed_opts
+    with :ok <- validate_runtime_opts_shape(opts),
+         :ok <- reject_unknown_runtime_keys(opts) do
+      case Zoi.parse(@runtime_opts_schema, opts) do
+        {:ok, parsed_opts} ->
+          {:ok, parsed_opts}
 
-      {:error, errors} ->
-        log_warning(Error.validation_error("invalid runtime evolve options", %{details: errors}))
-        []
+        {:error, errors} ->
+          {:error, Error.validation_error("invalid runtime evolve options", %{details: Zoi.treefy_errors(errors)})}
+      end
     end
   end
+
+  defp validate_runtime_opts_shape(opts) do
+    if Keyword.keyword?(opts) do
+      :ok
+    else
+      {:error, Error.validation_error("engine options must be a keyword list", %{field: :opts, value: opts})}
+    end
+  end
+
+  defp reject_unknown_runtime_keys(opts) do
+    allowed_keys = [:mutation, :selection, :crossover, :context]
+
+    unknown_keys =
+      opts
+      |> Keyword.keys()
+      |> Enum.uniq()
+      |> Enum.reject(&(&1 in allowed_keys))
+
+    if Enum.empty?(unknown_keys) do
+      :ok
+    else
+      {:error,
+       Error.validation_error("invalid runtime evolve options", %{field: :opts, unknown_keys: unknown_keys, value: opts})}
+    end
+  end
+
+  defp resolve_strategy(module, :mutation) do
+    case validate_mutation_module(module, []) do
+      :ok ->
+        {:ok, module}
+
+      {:error, message} ->
+        {:error, Error.validation_error(message, %{field: :mutation, value: module})}
+    end
+  end
+
+  defp resolve_strategy(module, :selection) do
+    case validate_selection_module(module, []) do
+      :ok ->
+        {:ok, module}
+
+      {:error, message} ->
+        {:error, Error.validation_error(message, %{field: :selection, value: module})}
+    end
+  end
+
+  defp resolve_strategy(module, :crossover) do
+    case validate_crossover_module(module, []) do
+      :ok ->
+        {:ok, module}
+
+      {:error, message} ->
+        {:error, Error.validation_error(message, %{field: :crossover, value: module})}
+    end
+  end
+
+  @doc false
+  @spec validate_mutation_module(module(), keyword()) :: :ok | {:error, String.t()}
+  def validate_mutation_module(module, _opts) do
+    validate_strategy_module(module, :mutate, 2, "mutation strategy must export mutate/2")
+  end
+
+  @doc false
+  @spec validate_selection_module(module(), keyword()) :: :ok | {:error, String.t()}
+  def validate_selection_module(module, _opts) do
+    validate_strategy_module(module, :select, 4, "selection strategy must export select/4")
+  end
+
+  @doc false
+  @spec validate_crossover_module(module(), keyword()) :: :ok | {:error, String.t()}
+  def validate_crossover_module(module, _opts) do
+    validate_strategy_module(module, :crossover, 3, "crossover strategy must export crossover/3")
+  end
+
+  defp validate_strategy_module(module, function, arity, message) when is_atom(module) do
+    if Code.ensure_loaded?(module) and function_exported?(module, function, arity) do
+      :ok
+    else
+      {:error, message}
+    end
+  end
+
+  defp validate_strategy_module(_module, _function, _arity, message), do: {:error, message}
 end
