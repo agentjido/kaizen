@@ -26,7 +26,7 @@ defmodule Jido.Evolve.MixProject do
       {:jason, "~> 1.4"},
       {:nimble_options, "~> 1.1"},
       {:typed_struct, "~> 0.3.0"},
-      {:splode, "~> 0.2.3"},
+      {:splode, "~> 0.3.0"},
       {:telemetry, "~> 1.0"},
 
       # Dev/test dependencies
@@ -34,7 +34,8 @@ defmodule Jido.Evolve.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:quokka, "~> 2.11", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false}
+      {:excoveralls, "~> 0.18", only: [:dev, :test], runtime: false},
+      {:castore, "~> 1.0", only: [:dev, :test], runtime: false}
     ]
   end
 
