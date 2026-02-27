@@ -12,7 +12,7 @@
 - **Main app**: Jido.Evolve - Generic evolutionary algorithm framework in Elixir
 - **Core modules**: `lib/jido_evolve/` contains main implementation
 - **Application**: OTP application with supervisor tree (see `lib/jido_evolve/application.ex`)
-- **Architecture**: Protocol-based system for evolutinary algorithms (see IDEA.md for detailed design)
+- **Architecture**: Protocol-based system for evolutinary algorithms (see notes/legacy/IDEA.md for detailed design)
 - **Key concepts**: Evolvable protocols, fitness behaviors, mutation/selection strategies, Pareto optimization
 
 ## Code Style & Conventions  
