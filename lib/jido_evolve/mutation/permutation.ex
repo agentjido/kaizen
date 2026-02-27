@@ -29,26 +29,55 @@ defmodule Jido.Evolve.Mutation.Permutation do
 
   use Jido.Evolve.Mutation
 
+  @opts_schema Zoi.keyword(
+                 [
+                   mode:
+                     Zoi.enum([
+                       :swap,
+                       :inversion,
+                       :insertion
+                     ])
+                     |> Zoi.default(:swap),
+                   rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.1)
+                 ],
+                 coerce: true
+               )
+
   @impl true
   def mutate(permutation, opts) when is_list(permutation) do
-    rate = Keyword.get(opts, :rate, 0.1)
-    mode = Keyword.get(opts, :mode, :swap)
+    with {:ok, parsed_opts} <- parse_opts(opts) do
+      rate = Keyword.fetch!(parsed_opts, :rate)
+      mode = Keyword.fetch!(parsed_opts, :mode)
 
-    if :rand.uniform() < rate do
-      case mode do
-        :swap -> swap(permutation)
-        :inversion -> inversion(permutation)
-        :insertion -> insertion(permutation)
-        _ -> {:error, "Unknown mutation mode: #{mode}"}
+      if :rand.uniform() < rate do
+        case mode do
+          :swap -> swap(permutation)
+          :inversion -> inversion(permutation)
+          :insertion -> insertion(permutation)
+        end
+      else
+        {:ok, permutation}
       end
-    else
-      {:ok, permutation}
     end
   end
 
   def mutate(_genome, _opts) do
     {:error, "Permutation mutation requires list genome"}
   end
+
+  defp parse_opts(opts) when is_map(opts), do: parse_opts(Map.to_list(opts))
+
+  defp parse_opts(opts) when is_list(opts) do
+    case Zoi.parse(@opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        {:ok, parsed_opts}
+
+      {:error, errors} ->
+        {:error, "invalid permutation mutation opts: #{inspect(Zoi.treefy_errors(errors))}"}
+    end
+  end
+
+  defp parse_opts(_opts), do: {:error, "invalid permutation mutation opts: expected keyword list or map"}
 
   # Swap two random positions
   defp swap(permutation) do

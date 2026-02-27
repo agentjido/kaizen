@@ -27,15 +27,25 @@ defmodule Jido.Evolve.ConfigTest do
   end
 
   test "validates evaluation timeout and termination criteria" do
-    assert {:error, %ArgumentError{message: message}} = Jido.Evolve.Config.new(evaluation_timeout: 0)
-    assert message =~ "evaluation_timeout must be a positive integer or :infinity"
+    assert {:error, timeout_errors} = Jido.Evolve.Config.new(evaluation_timeout: 0)
+
+    assert Enum.any?(timeout_errors, fn
+             %Zoi.Error{path: [:evaluation_timeout]} -> true
+             _ -> false
+           end)
 
     assert {:ok, _config} = Jido.Evolve.Config.new(evaluation_timeout: :infinity)
 
-    assert {:error, %ArgumentError{message: criteria_message}} =
+    assert {:error, criteria_errors} =
              Jido.Evolve.Config.new(termination_criteria: %{max_generations: 10})
 
-    assert criteria_message =~ "termination_criteria must be a keyword list"
+    assert Enum.any?(criteria_errors, fn
+             %Zoi.Error{path: [:termination_criteria]} -> true
+             _ -> false
+           end)
+
+    assert {:ok, _config} =
+             Jido.Evolve.Config.new(termination_criteria: [max_generations: 10, target_fitness: 0.9])
   end
 
   test "rejects non keyword/map config input" do

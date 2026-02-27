@@ -8,6 +8,14 @@ defmodule Jido.Evolve.Selection.Tournament do
 
   use Jido.Evolve.Selection
 
+  @opts_schema Zoi.keyword(
+                 [
+                   tournament_size: Zoi.integer() |> Zoi.min(1) |> Zoi.default(2),
+                   pressure: Zoi.number() |> Zoi.min(0.0) |> Zoi.default(1.0)
+                 ],
+                 coerce: true
+               )
+
   @doc """
   Select entities using tournament selection.
 
@@ -23,16 +31,21 @@ defmodule Jido.Evolve.Selection.Tournament do
       selected = Jido.Evolve.Selection.Tournament.select(population, scores, 2, tournament_size: 2)
   """
   def select(population, scores, count, opts \\ []) do
-    tournament_size = Keyword.get(opts, :tournament_size, 2)
-    pressure = Keyword.get(opts, :pressure, 1.0)
+    with {:ok, parsed_opts} <- parse_opts(opts) do
+      tournament_size = Keyword.fetch!(parsed_opts, :tournament_size)
+      pressure = Keyword.fetch!(parsed_opts, :pressure)
 
-    if Enum.empty?(population) or map_size(scores) == 0 do
-      []
+      if Enum.empty?(population) or map_size(scores) == 0 do
+        []
+      else
+        1..count
+        |> Enum.map(fn _ ->
+          run_tournament(population, scores, tournament_size, pressure)
+        end)
+      end
     else
-      1..count
-      |> Enum.map(fn _ ->
-        run_tournament(population, scores, tournament_size, pressure)
-      end)
+      {:error, _reason} ->
+        []
     end
   end
 
@@ -63,4 +76,16 @@ defmodule Jido.Evolve.Selection.Tournament do
     |> Enum.max_by(fn {_candidate, score} -> score end)
     |> elem(0)
   end
+
+  defp parse_opts(opts) when is_list(opts) do
+    case Zoi.parse(@opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        {:ok, parsed_opts}
+
+      {:error, errors} ->
+        {:error, "invalid tournament selection opts: #{inspect(Zoi.treefy_errors(errors))}"}
+    end
+  end
+
+  defp parse_opts(_opts), do: {:error, "invalid tournament selection opts: expected keyword list"}
 end

@@ -193,7 +193,7 @@ defmodule Jido.Evolve.Crossover.MapUniformTest do
       {child1, _child2} = MapUniform.crossover(parent1, parent2, config)
 
       assert is_list(child1.layers)
-      assert length(child1.layers) > 0
+      refute Enum.empty?(child1.layers)
     end
 
     test "handles empty lists" do

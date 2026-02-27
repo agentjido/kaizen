@@ -6,6 +6,19 @@ defmodule Jido.Evolve.Mutation.Random do
   """
 
   @behaviour Jido.Evolve.Mutation
+  alias Jido.Evolve.Evolvable
+
+  @opts_schema Zoi.keyword(
+                 [
+                   rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.1),
+                   strength: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.5),
+                   operations:
+                     Zoi.list(Zoi.enum([:replace, :insert, :delete]))
+                     |> Zoi.min(1)
+                     |> Zoi.default([:replace, :insert, :delete])
+                 ],
+                 coerce: true
+               )
 
   @doc """
   Apply random mutations to an entity.
@@ -28,22 +41,18 @@ defmodule Jido.Evolve.Mutation.Random do
       true
   """
   def mutate(entity, opts \\ []) do
-    rate = Keyword.get(opts, :rate, 0.1)
-    strength = Keyword.get(opts, :strength, 0.5)
-    operations = Keyword.get(opts, :operations, [:replace, :insert, :delete])
+    with {:ok, parsed_opts} <- parse_opts(opts) do
+      rate = Keyword.fetch!(parsed_opts, :rate)
+      strength = Keyword.fetch!(parsed_opts, :strength)
+      operations = Keyword.fetch!(parsed_opts, :operations)
 
-    # Convert to genome
-    genome = Jido.Evolve.Evolvable.to_genome(entity)
-
-    # Apply mutations
-    mutated_genome = apply_mutations(genome, rate, strength, operations)
-
-    # Convert back to entity
-    mutated_entity = Jido.Evolve.Evolvable.from_genome(entity, mutated_genome)
-
-    {:ok, mutated_entity}
+      genome = Evolvable.to_genome(entity)
+      mutated_genome = apply_mutations(genome, rate, strength, operations)
+      {:ok, Evolvable.from_genome(entity, mutated_genome)}
+    end
   rescue
-    error -> {:error, error}
+    error ->
+      {:error, error}
   end
 
   # Private functions
@@ -97,4 +106,16 @@ defmodule Jido.Evolve.Mutation.Random do
       genome
     end
   end
+
+  defp parse_opts(opts) when is_list(opts) do
+    case Zoi.parse(@opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        {:ok, parsed_opts}
+
+      {:error, errors} ->
+        {:error, "invalid random mutation opts: #{inspect(Zoi.treefy_errors(errors))}"}
+    end
+  end
+
+  defp parse_opts(_opts), do: {:error, "invalid random mutation opts: expected keyword list"}
 end

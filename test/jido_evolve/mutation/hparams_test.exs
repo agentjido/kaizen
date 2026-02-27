@@ -11,6 +11,11 @@ defmodule Jido.Evolve.Mutation.HParamsTest do
     assert {:error, "HParams mutation requires map genome"} = HParams.mutate("not a map", schema: %{})
   end
 
+  test "returns error for invalid options shape" do
+    assert {:error, message} = HParams.mutate(%{lr: 0.01}, %{schema: %{}, rate: -0.1})
+    assert message =~ "invalid hparams mutation opts"
+  end
+
   test "mutates scalar parameter types while preserving bounds" do
     schema = %{
       learning_rate: {:float, {0.001, 0.1}, :linear},

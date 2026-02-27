@@ -2,20 +2,8 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
   use ExUnit.Case, async: true
 
   alias Jido.Evolve.{Config, Engine, State}
-
-  defmodule SlowFitness do
-    @behaviour Jido.Evolve.Fitness
-
-    @impl true
-    def evaluate(entity, %{delay: delay}) do
-      Process.sleep(delay)
-      {:ok, String.length(entity)}
-    end
-
-    def evaluate(entity, _context) do
-      {:ok, String.length(entity)}
-    end
-  end
+  alias Jido.Evolve.Evolvable.String, as: EvolvableString
+  alias TestEngine.SlowFitness
 
   describe "evaluation_timeout configuration" do
     test "defaults to 30 seconds" do
@@ -55,7 +43,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{delay: 10})
+        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{delay: 10})
         |> Enum.take(2)
 
       assert length(states) == 2
@@ -77,7 +65,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
       # Fitness function will sleep for 500ms, but timeout is 100ms
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{delay: 500})
+        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{delay: 500})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -101,7 +89,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
       # This should complete even though it takes 200ms per entity
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{delay: 200})
+        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{delay: 200})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -126,7 +114,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
         Engine.evolution_step(
           state,
           SlowFitness,
-          Jido.Evolve.Evolvable.String,
+          EvolvableString,
           Jido.Evolve.Mutation.Text,
           Jido.Evolve.Selection.Tournament,
           Jido.Evolve.Crossover.String,
@@ -152,7 +140,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{})
+        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{})
         |> Enum.take(1)
 
       assert length(states) == 1
@@ -170,7 +158,7 @@ defmodule Jido.Evolve.EvaluationTimeoutTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, SlowFitness, Jido.Evolve.Evolvable.String, context: %{})
+        |> Engine.evolve(config, SlowFitness, EvolvableString, context: %{})
         |> Enum.take(1)
 
       assert length(states) == 1

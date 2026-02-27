@@ -9,12 +9,12 @@ defmodule Jido.Evolve.Options do
             __MODULE__,
             %{
               initial_population: Zoi.list(Zoi.any()),
-              fitness: Zoi.atom(),
+              fitness: Zoi.any(),
               config: Zoi.any() |> Zoi.nullish(),
               context: Zoi.map() |> Zoi.default(%{}),
-              mutation: Zoi.atom() |> Zoi.nullish(),
-              selection: Zoi.atom() |> Zoi.nullish(),
-              crossover: Zoi.atom() |> Zoi.nullish()
+              mutation: Zoi.any() |> Zoi.nullish(),
+              selection: Zoi.any() |> Zoi.nullish(),
+              crossover: Zoi.any() |> Zoi.nullish()
             },
             coerce: true
           )

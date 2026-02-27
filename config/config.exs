@@ -9,5 +9,6 @@ config :logger, :default_formatter,
     :diversity,
     :evaluated_count,
     :offspring_count,
-    :elite_count
+    :elite_count,
+    :details
   ]

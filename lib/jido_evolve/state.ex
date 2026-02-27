@@ -6,7 +6,7 @@ defmodule Jido.Evolve.State do
   and metadata about the evolution process.
   """
 
-  alias Jido.Evolve.Config
+  alias Jido.Evolve.{Config, Evolvable}
 
   @schema Zoi.struct(
             __MODULE__,
@@ -177,7 +177,7 @@ defmodule Jido.Evolve.State do
       else
         total_similarity =
           pairs
-          |> Enum.map(fn {a, b} -> Jido.Evolve.Evolvable.similarity(a, b) end)
+          |> Enum.map(fn {a, b} -> Evolvable.similarity(a, b) end)
           |> Enum.sum()
 
         total_similarity / length(pairs)
@@ -197,10 +197,10 @@ defmodule Jido.Evolve.State do
             if Enum.empty?(candidates) do
               0.0
             else
-              Jido.Evolve.Evolvable.similarity(i, Enum.random(candidates))
+              Evolvable.similarity(i, Enum.random(candidates))
             end
           else
-            Jido.Evolve.Evolvable.similarity(i, j)
+            Evolvable.similarity(i, j)
           end
         end)
 

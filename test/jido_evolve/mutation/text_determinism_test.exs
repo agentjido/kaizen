@@ -111,5 +111,10 @@ defmodule Jido.Evolve.Mutation.TextDeterminismTest do
       assert Text.mutation_strength(100) < 1.0
       assert Text.mutation_strength(10_000) == 0.1
     end
+
+    test "returns error for invalid options" do
+      assert {:error, message} = Text.mutate("abc", rate: 2.0)
+      assert message =~ "invalid text mutation opts"
+    end
   end
 end

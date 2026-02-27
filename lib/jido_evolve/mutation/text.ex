@@ -9,6 +9,14 @@ defmodule Jido.Evolve.Mutation.Text do
   @behaviour Jido.Evolve.Mutation
 
   @alphabet String.to_charlist("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ ,!?")
+  @opts_schema Zoi.keyword(
+                 [
+                   rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.1),
+                   strength: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.5),
+                   operations: Zoi.list(Zoi.enum([:replace, :insert, :delete])) |> Zoi.min(1) |> Zoi.default([:replace])
+                 ],
+                 coerce: true
+               )
 
   @doc """
   Apply random mutations to a string entity.
@@ -28,22 +36,14 @@ defmodule Jido.Evolve.Mutation.Text do
   def mutate(entity, opts \\ [])
 
   def mutate(entity, opts) when is_binary(entity) do
-    rate = Keyword.get(opts, :rate, 0.1)
-    _strength = Keyword.get(opts, :strength, 0.5)
-    operations = Keyword.get(opts, :operations, [:replace])
+    with {:ok, parsed_opts} <- parse_opts(opts) do
+      rate = Keyword.fetch!(parsed_opts, :rate)
+      operations = Keyword.fetch!(parsed_opts, :operations)
 
-    # Convert to charlist for easier manipulation
-    chars = String.to_charlist(entity)
-
-    # Apply mutations
-    mutated_chars = apply_mutations(chars, rate, operations)
-
-    # Convert back to string
-    mutated_entity = List.to_string(mutated_chars)
-
-    {:ok, mutated_entity}
-  rescue
-    error -> {:error, error}
+      chars = String.to_charlist(entity)
+      mutated_chars = apply_mutations(chars, rate, operations)
+      {:ok, List.to_string(mutated_chars)}
+    end
   end
 
   # Handle non-string entities
@@ -111,4 +111,16 @@ defmodule Jido.Evolve.Mutation.Text do
       chars
     end
   end
+
+  defp parse_opts(opts) when is_list(opts) do
+    case Zoi.parse(@opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        {:ok, parsed_opts}
+
+      {:error, errors} ->
+        {:error, "invalid text mutation opts: #{inspect(Zoi.treefy_errors(errors))}"}
+    end
+  end
+
+  defp parse_opts(_opts), do: {:error, "invalid text mutation opts: expected keyword list"}
 end

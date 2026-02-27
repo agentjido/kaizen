@@ -10,6 +10,19 @@ defmodule Jido.Evolve.Engine do
 
   alias Jido.Evolve.{Config, Error, State}
 
+  @runtime_opts_schema Zoi.keyword(
+                         [
+                           mutation: Zoi.any(),
+                           selection: Zoi.any(),
+                           crossover: Zoi.any(),
+                           mutation_module: Zoi.any(),
+                           selection_module: Zoi.any(),
+                           crossover_module: Zoi.any(),
+                           context: Zoi.map() |> Zoi.default(%{})
+                         ],
+                         coerce: true
+                       )
+
   @doc """
   Run an evolutionary algorithm with the given configuration.
 
@@ -32,16 +45,18 @@ defmodule Jido.Evolve.Engine do
 
   @spec evolve(list(any()), Config.t(), module(), keyword()) :: Enumerable.t()
   def evolve(initial_population, %Config{} = config, fitness_module, opts) when is_list(opts) do
+    parsed_opts = parse_runtime_opts(opts)
+
     mutation_module =
-      Keyword.get(opts, :mutation, Keyword.get(opts, :mutation_module, config.mutation_strategy))
+      Keyword.get(parsed_opts, :mutation, Keyword.get(parsed_opts, :mutation_module, config.mutation_strategy))
 
     selection_module =
-      Keyword.get(opts, :selection, Keyword.get(opts, :selection_module, config.selection_strategy))
+      Keyword.get(parsed_opts, :selection, Keyword.get(parsed_opts, :selection_module, config.selection_strategy))
 
     crossover_module =
-      Keyword.get(opts, :crossover, Keyword.get(opts, :crossover_module, config.crossover_strategy))
+      Keyword.get(parsed_opts, :crossover, Keyword.get(parsed_opts, :crossover_module, config.crossover_strategy))
 
-    context = Keyword.get(opts, :context, %{})
+    context = Keyword.get(parsed_opts, :context, %{})
 
     Config.init_random_seed(config)
 
@@ -293,5 +308,16 @@ defmodule Jido.Evolve.Engine do
 
   defp log_warning(error) do
     Logger.warning(Exception.message(error), details: Map.from_struct(error))
+  end
+
+  defp parse_runtime_opts(opts) do
+    case Zoi.parse(@runtime_opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        parsed_opts
+
+      {:error, errors} ->
+        log_warning(Error.validation_error("invalid runtime evolve options", %{details: errors}))
+        []
+    end
   end
 end

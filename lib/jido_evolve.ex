@@ -5,7 +5,7 @@ defmodule Jido.Evolve do
   The canonical public API is `evolve/1`.
   """
 
-  alias Jido.Evolve.Options
+  alias Jido.Evolve.{Engine, Error, Options}
 
   @doc """
   Run an evolutionary search over a population.
@@ -41,7 +41,7 @@ defmodule Jido.Evolve do
   def evolve(opts) when is_list(opts) or is_map(opts) do
     normalized = Options.new!(opts)
 
-    Jido.Evolve.Engine.evolve(
+    Engine.evolve(
       normalized.initial_population,
       normalized.config,
       normalized.fitness,
@@ -53,7 +53,7 @@ defmodule Jido.Evolve do
   end
 
   def evolve(_opts) do
-    raise Jido.Evolve.Error.validation_error("evolve/1 expects a keyword list or map")
+    raise Error.validation_error("evolve/1 expects a keyword list or map")
   end
 
   @doc """

@@ -7,6 +7,18 @@ defmodule Jido.Evolve.Mutation.AdaptiveText do
   """
 
   @behaviour Jido.Evolve.Mutation
+  alias Jido.Evolve.Mutation.Text
+
+  @opts_schema Zoi.keyword(
+                 [
+                   high_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.3),
+                   low_rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.08),
+                   fitness_threshold: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.75),
+                   best_fitness: Zoi.number() |> Zoi.default(0.0),
+                   operations: Zoi.list(Zoi.enum([:replace, :insert, :delete])) |> Zoi.min(1) |> Zoi.default([:replace])
+                 ],
+                 coerce: true
+               )
 
   @doc """
   Apply adaptive mutation to a string entity.
@@ -24,25 +36,20 @@ defmodule Jido.Evolve.Mutation.AdaptiveText do
   def mutate(entity, opts \\ [])
 
   def mutate(entity, opts) when is_binary(entity) do
-    high_rate = Keyword.get(opts, :high_rate, 0.3)
-    low_rate = Keyword.get(opts, :low_rate, 0.08)
-    fitness_threshold = Keyword.get(opts, :fitness_threshold, 0.75)
-    best_fitness = Keyword.get(opts, :best_fitness, 0.0)
-    operations = Keyword.get(opts, :operations, [:replace])
+    with {:ok, parsed_opts} <- parse_opts(opts) do
+      high_rate = Keyword.fetch!(parsed_opts, :high_rate)
+      low_rate = Keyword.fetch!(parsed_opts, :low_rate)
+      fitness_threshold = Keyword.fetch!(parsed_opts, :fitness_threshold)
+      best_fitness = Keyword.fetch!(parsed_opts, :best_fitness)
+      operations = Keyword.fetch!(parsed_opts, :operations)
 
-    # Adapt mutation rate based on fitness
-    adaptive_rate =
-      if best_fitness >= fitness_threshold do
-        low_rate
-      else
-        high_rate
-      end
+      adaptive_rate = if best_fitness >= fitness_threshold, do: low_rate, else: high_rate
 
-    # Delegate to Text mutation with adaptive rate
-    Jido.Evolve.Mutation.Text.mutate(entity,
-      rate: adaptive_rate,
-      operations: operations
-    )
+      Text.mutate(entity,
+        rate: adaptive_rate,
+        operations: operations
+      )
+    end
   end
 
   def mutate(entity, _opts) do
@@ -55,4 +62,16 @@ defmodule Jido.Evolve.Mutation.AdaptiveText do
   def mutation_strength(generation) do
     max(0.1, 1.0 - generation / 1000.0)
   end
+
+  defp parse_opts(opts) when is_list(opts) do
+    case Zoi.parse(@opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        {:ok, parsed_opts}
+
+      {:error, errors} ->
+        {:error, "invalid adaptive text mutation opts: #{inspect(Zoi.treefy_errors(errors))}"}
+    end
+  end
+
+  defp parse_opts(_opts), do: {:error, "invalid adaptive text mutation opts: expected keyword list"}
 end

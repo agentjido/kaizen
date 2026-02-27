@@ -148,7 +148,7 @@ defmodule Jido.Evolve.Mutation.PermutationTest do
             |> Enum.reject(fn {{a, b}, _} -> a == b end)
 
           # At least one position should differ
-          assert length(moved_indices) > 0
+          refute Enum.empty?(moved_indices)
         end
       end
     end
@@ -207,6 +207,14 @@ defmodule Jido.Evolve.Mutation.PermutationTest do
 
     test "rejects unknown mode" do
       assert {:error, _} = Permutation.mutate([1, 2, 3], rate: 1.0, mode: :unknown)
+    end
+
+    test "rejects invalid options via schema validation" do
+      assert {:error, message} = Permutation.mutate([1, 2, 3], rate: -0.1)
+      assert message =~ "invalid permutation mutation opts"
+
+      assert {:error, message} = Permutation.mutate([1, 2, 3], :invalid)
+      assert message =~ "expected keyword list or map"
     end
   end
 

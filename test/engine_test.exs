@@ -2,13 +2,26 @@ defmodule Jido.Evolve.EngineTest do
   use ExUnit.Case, async: true
 
   alias Jido.Evolve.{Config, Engine}
+  alias Jido.Evolve.Evolvable.String, as: EvolvableString
+
+  alias TestEngine.{
+    AlwaysWorseSelection,
+    CustomMutation,
+    CustomSelection,
+    ErrorMutation,
+    MetadataFitness,
+    MixedFitness,
+    OddSelection,
+    OddSelection2,
+    TimeoutFitness
+  }
 
   describe "evolve/5 stream shape and termination" do
     test "returns a Stream that yields states" do
       config = Config.new!(population_size: 4, generations: 2, mutation_rate: 0.5)
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
-      stream = Engine.evolve(initial_pop, config, TestFitness, Jido.Evolve.Evolvable.String)
+      stream = Engine.evolve(initial_pop, config, TestFitness, EvolvableString)
 
       assert is_function(stream)
       assert Enumerable.impl_for(stream) != nil
@@ -20,7 +33,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # Should yield exactly 1 state (generation 0)
@@ -34,7 +47,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # Should yield exactly 2 states (generations 0 and 1)
@@ -49,7 +62,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # Should yield exactly 3 states (generations 0, 1, and 2)
@@ -70,20 +83,9 @@ defmodule Jido.Evolve.EngineTest do
 
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
-      # Create a custom mutation module that adds "_custom" instead of "_mutated"
-      defmodule CustomMutation do
-        @behaviour Jido.Evolve.Mutation
-
-        def mutate(entity, _opts) when is_binary(entity) do
-          {:ok, entity <> "_custom"}
-        end
-
-        def mutation_strength(_generation), do: 0.5
-      end
-
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String, mutation_module: CustomMutation)
+        |> Engine.evolve(config, TestFitness, EvolvableString, mutation_module: CustomMutation)
         |> Enum.to_list()
 
       # Get the last state (generation 1)
@@ -105,22 +107,9 @@ defmodule Jido.Evolve.EngineTest do
 
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
-      # Create a custom selection module that always selects the shortest strings
-      defmodule CustomSelection do
-        @behaviour Jido.Evolve.Selection
-
-        def select(population, scores, count, _opts) do
-          population
-          |> Enum.map(fn entity -> {entity, Map.get(scores, entity, 0.0)} end)
-          |> Enum.sort_by(fn {entity, _score} -> String.length(entity) end, :asc)
-          |> Enum.take(count)
-          |> Enum.map(fn {entity, _score} -> entity end)
-        end
-      end
-
       [final_state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String, selection_module: CustomSelection)
+        |> Engine.evolve(config, TestFitness, EvolvableString, selection_module: CustomSelection)
         |> Enum.to_list()
 
       # Verify selection occurred
@@ -135,7 +124,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # TestFitness returns score based on string length
@@ -146,32 +135,12 @@ defmodule Jido.Evolve.EngineTest do
     end
 
     test "fitness.evaluate returns {:ok, %{score: score}} → metadata handled" do
-      defmodule MetadataFitness do
-        @behaviour Jido.Evolve.Fitness
-
-        def evaluate(entity, _context) do
-          score = entity |> to_string() |> String.length() |> to_float()
-          {:ok, %{score: score, metadata: "test"}}
-        end
-
-        def batch_evaluate(entities, context) do
-          entities
-          |> Enum.map(fn entity -> evaluate(entity, context) end)
-          |> Enum.map(fn
-            {:ok, result} -> {:ok, result}
-            {:error, reason} -> {:error, reason}
-          end)
-        end
-
-        defp to_float(int) when is_integer(int), do: int * 1.0
-      end
-
       config = Config.new!(population_size: 4, generations: 1)
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, MetadataFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, MetadataFitness, EvolvableString)
         |> Enum.to_list()
 
       # Metadata format should be handled correctly
@@ -187,7 +156,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # All entities should be evaluated
@@ -211,7 +180,7 @@ defmodule Jido.Evolve.EngineTest do
       # TestFitness supports :return_error context flag
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String, context: %{return_error: true})
+        |> Engine.evolve(config, TestFitness, EvolvableString, context: %{return_error: true})
         |> Enum.to_list()
 
       # All entities should get score 0.0 when evaluation returns error
@@ -230,30 +199,9 @@ defmodule Jido.Evolve.EngineTest do
       config = Config.new!(population_size: 2, generations: 1, max_concurrency: 1)
       initial_pop = ["quick", "slow"]
 
-      defmodule TimeoutFitness do
-        @behaviour Jido.Evolve.Fitness
-
-        def evaluate(entity, _context) do
-          # Simulate a very slow evaluation that would timeout
-          # In practice, Task.async_stream's timeout: :timer.seconds(30) handles this
-          if entity == "slow" do
-            # Sleep longer than test timeout to simulate real timeout scenario
-            # But actually, we can't reliably test this without hanging tests
-            # So instead we verify the engine handles the reduction pattern
-            {:ok, 1.0}
-          else
-            {:ok, String.length(entity) * 1.0}
-          end
-        end
-
-        def batch_evaluate(entities, context) do
-          Enum.map(entities, &evaluate(&1, context))
-        end
-      end
-
       [state] =
         initial_pop
-        |> Engine.evolve(config, TimeoutFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TimeoutFitness, EvolvableString)
         |> Enum.to_list()
 
       # Both entities should be evaluated (no actual timeout in this simplified test)
@@ -268,37 +216,9 @@ defmodule Jido.Evolve.EngineTest do
       config = Config.new!(population_size: 6, generations: 1, max_concurrency: 1)
       initial_pop = ["a", "bb", "ccc", "dddd", "eeeee", "ffffff"]
 
-      # Mixed scenario: some entities will error, some will succeed
-      defmodule MixedFitness do
-        @behaviour Jido.Evolve.Fitness
-
-        def evaluate(entity, _context) do
-          length = String.length(entity)
-
-          cond do
-            # Entities with odd length return errors instead of raising
-            rem(length, 2) == 1 ->
-              {:error, :odd_length}
-
-            # Entities with even length succeed
-            true ->
-              {:ok, length * 1.0}
-          end
-        end
-
-        def batch_evaluate(entities, context) do
-          entities
-          |> Enum.map(fn entity -> evaluate(entity, context) end)
-          |> Enum.map(fn
-            {:ok, score} -> {:ok, score}
-            {:error, reason} -> {:error, reason}
-          end)
-        end
-      end
-
       [state] =
         initial_pop
-        |> Engine.evolve(config, MixedFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, MixedFitness, EvolvableString)
         |> Enum.to_list()
 
       # Only even-length strings should have scores
@@ -350,7 +270,7 @@ defmodule Jido.Evolve.EngineTest do
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, EvolvableString)
       |> Enum.to_list()
 
       # Should receive evolution start event
@@ -365,7 +285,7 @@ defmodule Jido.Evolve.EngineTest do
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, EvolvableString)
       |> Enum.to_list()
 
       # Should receive generation start event for generation 1
@@ -380,7 +300,7 @@ defmodule Jido.Evolve.EngineTest do
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, EvolvableString)
       |> Enum.to_list()
 
       # Should receive at least one evaluation start event (initial population)
@@ -395,7 +315,7 @@ defmodule Jido.Evolve.EngineTest do
       initial_pop = ["a", "bb", "ccc", "dddd"]
 
       initial_pop
-      |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+      |> Engine.evolve(config, TestFitness, EvolvableString)
       |> Enum.to_list()
 
       # Collect all events
@@ -444,7 +364,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # Get generation 1 population
@@ -485,7 +405,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -523,7 +443,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -563,7 +483,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -597,7 +517,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -631,7 +551,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -651,17 +571,6 @@ defmodule Jido.Evolve.EngineTest do
 
   describe "select_and_breed mutation error handling" do
     test "mutation returns {:error, _} → child passed through unchanged (with warning)" do
-      # Create a mutation module that returns errors
-      defmodule ErrorMutation do
-        @behaviour Jido.Evolve.Mutation
-
-        def mutate(_entity, _opts) do
-          {:error, :deliberate_mutation_error}
-        end
-
-        def mutation_strength(_generation), do: 0.5
-      end
-
       config =
         Config.new!(
           population_size: 4,
@@ -678,7 +587,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -705,22 +614,6 @@ defmodule Jido.Evolve.EngineTest do
 
   describe "select_and_breed odd parents edge case" do
     test "TestSelection returns odd-length list → handle single parent case" do
-      # Create a selection module that returns odd number of parents
-      defmodule OddSelection do
-        @behaviour Jido.Evolve.Selection
-
-        def select(population, scores, count, _opts) do
-          # Return odd number of parents (count - 1 if count is even)
-          actual_count = if rem(count, 2) == 0, do: count - 1, else: count
-
-          population
-          |> Enum.map(fn entity -> {entity, Map.get(scores, entity, 0.0)} end)
-          |> Enum.sort_by(fn {_entity, score} -> score end, :desc)
-          |> Enum.take(actual_count)
-          |> Enum.map(fn {entity, _score} -> entity end)
-        end
-      end
-
       config =
         Config.new!(
           population_size: 6,
@@ -737,7 +630,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -756,22 +649,6 @@ defmodule Jido.Evolve.EngineTest do
     end
 
     test "odd parents with mutation_rate = 0.0 → single parent passed through" do
-      # Test that single parent is passed through when mutation doesn't occur
-      defmodule OddSelection2 do
-        @behaviour Jido.Evolve.Selection
-
-        def select(population, scores, count, _opts) do
-          # Always return odd number
-          actual_count = if rem(count, 2) == 0, do: count - 1, else: count
-
-          population
-          |> Enum.map(fn entity -> {entity, Map.get(scores, entity, 0.0)} end)
-          |> Enum.sort_by(fn {_entity, score} -> score end, :desc)
-          |> Enum.take(actual_count)
-          |> Enum.map(fn {entity, _score} -> entity end)
-        end
-      end
-
       config =
         Config.new!(
           population_size: 5,
@@ -788,7 +665,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -826,7 +703,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -865,7 +742,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       final_state = List.last(states)
@@ -874,7 +751,7 @@ defmodule Jido.Evolve.EngineTest do
       assert length(final_state.population) == 10
 
       # Elite count should be 2 (20% of 10)
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 2
 
       # Best entities from previous generation should be present
@@ -909,7 +786,7 @@ defmodule Jido.Evolve.EngineTest do
 
         states =
           initial_pop
-          |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+          |> Engine.evolve(config, TestFitness, EvolvableString)
           |> Enum.to_list()
 
         final_state = List.last(states)
@@ -940,10 +817,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 1
 
       [gen0, gen1, gen2] = states
@@ -987,10 +864,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1] = states
@@ -1037,10 +914,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 3
 
       [gen0, gen1] = states
@@ -1077,10 +954,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1] = states
@@ -1119,10 +996,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1, gen2, gen3] = states
@@ -1159,10 +1036,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 0
 
       [_gen0, gen1] = states
@@ -1188,10 +1065,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 1
 
       [gen0] = states
@@ -1218,10 +1095,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 4
 
       [_gen0, gen1] = states
@@ -1231,14 +1108,6 @@ defmodule Jido.Evolve.EngineTest do
     end
 
     test "all offspring have lower fitness than elites → elites dominate population" do
-      defmodule AlwaysWorseSelection do
-        @behaviour Jido.Evolve.Selection
-
-        def select(_population, _scores, count, _opts) do
-          Enum.map(1..count, fn _ -> "x" end)
-        end
-      end
-
       config =
         Config.new!(
           population_size: 6,
@@ -1256,10 +1125,10 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
-      elite_count = Jido.Evolve.Config.elite_count(config)
+      elite_count = Config.elite_count(config)
       assert elite_count == 2
 
       [gen0, gen1] = states
@@ -1296,7 +1165,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [state] =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       assert state.diversity != nil, "Diversity should be calculated"
@@ -1323,7 +1192,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [identical_state] =
         identical_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # Use diverse strings → should have higher diversity
@@ -1331,7 +1200,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [diverse_state] =
         diverse_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       assert identical_state.diversity != nil
@@ -1360,7 +1229,7 @@ defmodule Jido.Evolve.EngineTest do
 
       states =
         initial_pop
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       assert length(states) == 3
@@ -1395,17 +1264,17 @@ defmodule Jido.Evolve.EngineTest do
 
       [very_similar_state] =
         very_similar
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       [somewhat_diverse_state] =
         somewhat_diverse
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       [very_diverse_state] =
         very_diverse
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # All should have diversity calculated
@@ -1441,7 +1310,7 @@ defmodule Jido.Evolve.EngineTest do
 
       [state] =
         population
-        |> Engine.evolve(config, TestFitness, Jido.Evolve.Evolvable.String)
+        |> Engine.evolve(config, TestFitness, EvolvableString)
         |> Enum.to_list()
 
       # Verify diversity is based on Jaro distance (inverted) for strings

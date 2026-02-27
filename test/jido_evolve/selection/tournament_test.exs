@@ -148,6 +148,14 @@ defmodule Jido.Evolve.Selection.TournamentTest do
       assert Tournament.select(["a", "b"], %{}, 5) == []
     end
 
+    test "returns empty list for invalid options" do
+      population = ["a", "b"]
+      scores = %{"a" => 1.0, "b" => 2.0}
+
+      assert Tournament.select(population, scores, 5, tournament_size: 0) == []
+      assert Tournament.select(population, scores, 5, :invalid) == []
+    end
+
     test "handles tournament size larger than population" do
       population = ["a", "b"]
       scores = %{"a" => 1.0, "b" => 2.0}

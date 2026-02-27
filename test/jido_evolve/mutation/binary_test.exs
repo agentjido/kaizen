@@ -20,4 +20,15 @@ defmodule Jido.Evolve.Mutation.BinaryTest do
     assert length(mutated) == length(genome)
     assert Enum.all?(mutated, &(&1 in [0, 1]))
   end
+
+  test "returns error for invalid genome and options" do
+    assert {:error, message} = Binary.mutate([0, 1, 2], rate: 0.5)
+    assert message =~ "invalid binary genome"
+
+    assert {:error, message} = Binary.mutate([0, 1], :invalid)
+    assert message =~ "expected keyword list"
+
+    assert {:error, message} = Binary.mutate([0, 1], rate: 2.0)
+    assert message =~ "invalid binary mutation opts"
+  end
 end

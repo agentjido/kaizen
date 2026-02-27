@@ -2,50 +2,14 @@ defmodule Jido.Evolve.FitnessTest do
   use ExUnit.Case
   doctest Jido.Evolve.Fitness
 
-  defmodule SimpleFitness do
-    use Jido.Evolve.Fitness
-
-    def evaluate(number, _context) when is_number(number) do
-      {:ok, number * 1.0}
-    end
-
-    def evaluate(_entity, _context) do
-      {:error, :invalid_entity}
-    end
-  end
-
-  defmodule MetadataFitness do
-    use Jido.Evolve.Fitness
-
-    def evaluate(string, _context) when is_binary(string) do
-      score = String.length(string) / 10.0
-      {:ok, %{score: score, metadata: %{length: String.length(string)}}}
-    end
-  end
-
-  defmodule MixedFitness do
-    use Jido.Evolve.Fitness
-
-    def evaluate(entity, context) do
-      case entity do
-        n when is_number(n) -> {:ok, n * 1.0}
-        s when is_binary(s) -> {:ok, %{score: String.length(s) / 10.0}}
-        _ -> Map.get(context, :default, {:error, :invalid})
-      end
-    end
-  end
-
-  defmodule InvalidFitness do
-    use Jido.Evolve.Fitness
-
-    def evaluate(_entity, %{return: return_value}) do
-      return_value
-    end
-
-    def evaluate(_entity, _context) do
-      nil
-    end
-  end
+  alias TestFitnessCases.{
+    CustomBatchFitness,
+    InvalidFitness,
+    MetadataFitness,
+    MixedFitness,
+    PrecisionFitness,
+    SimpleFitness
+  }
 
   describe "batch_evaluate default implementation with simple scores" do
     test "accepts {:ok, float} format and returns {:ok, list_of_tuples}" do
@@ -183,16 +147,6 @@ defmodule Jido.Evolve.FitnessTest do
     end
 
     test "batch_evaluate is overridable" do
-      defmodule CustomBatchFitness do
-        use Jido.Evolve.Fitness
-
-        def evaluate(n, _context), do: {:ok, n * 1.0}
-
-        def batch_evaluate(entities, _context) do
-          {:ok, Enum.map(entities, fn e -> {e, 100.0} end)}
-        end
-      end
-
       assert {:ok, results} = CustomBatchFitness.batch_evaluate([1, 2, 3], %{})
       assert results == [{1, 100.0}, {2, 100.0}, {3, 100.0}]
     end
@@ -255,12 +209,6 @@ defmodule Jido.Evolve.FitnessTest do
     end
 
     test "handles float precision" do
-      defmodule PrecisionFitness do
-        use Jido.Evolve.Fitness
-
-        def evaluate(n, _context), do: {:ok, n / 3.0}
-      end
-
       entities = [1, 2, 3]
       {:ok, results} = PrecisionFitness.batch_evaluate(entities, %{})
 

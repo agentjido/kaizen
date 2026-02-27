@@ -27,28 +27,39 @@ defmodule Jido.Evolve.Mutation.HParams do
 
   use Jido.Evolve.Mutation
 
+  @opts_schema Zoi.keyword(
+                 [
+                   schema: Zoi.map() |> Zoi.required(),
+                   rate: Zoi.number() |> Zoi.min(0.0) |> Zoi.max(1.0) |> Zoi.default(0.1),
+                   gaussian_scale: Zoi.number() |> Zoi.positive() |> Zoi.default(0.1)
+                 ],
+                 coerce: true
+               )
+
   @impl true
   def mutate(hparams, opts) when is_map(hparams) do
-    schema = Keyword.get(opts, :schema)
-    rate = Keyword.get(opts, :rate, 0.1)
-    gaussian_scale = Keyword.get(opts, :gaussian_scale, 0.1)
-
-    if schema == nil do
+    if not has_schema?(opts) do
       {:error, "HParams mutation requires :schema in opts"}
     else
-      mutated =
-        Enum.map(hparams, fn {key, value} ->
-          spec = Map.get(schema, key)
+      with {:ok, parsed_opts} <- parse_opts(opts) do
+        schema = Keyword.fetch!(parsed_opts, :schema)
+        rate = Keyword.fetch!(parsed_opts, :rate)
+        gaussian_scale = Keyword.fetch!(parsed_opts, :gaussian_scale)
 
-          if spec && :rand.uniform() < rate do
-            {key, mutate_value(value, spec, gaussian_scale)}
-          else
-            {key, value}
-          end
-        end)
-        |> Map.new()
+        mutated =
+          Enum.map(hparams, fn {key, value} ->
+            spec = Map.get(schema, key)
 
-      {:ok, mutated}
+            if spec && :rand.uniform() < rate do
+              {key, mutate_value(value, spec, gaussian_scale)}
+            else
+              {key, value}
+            end
+          end)
+          |> Map.new()
+
+        {:ok, mutated}
+      end
     end
   end
 
@@ -128,4 +139,22 @@ defmodule Jido.Evolve.Mutation.HParams do
   end
 
   defp random_value(_), do: 0
+
+  defp has_schema?(opts) when is_list(opts), do: Keyword.has_key?(opts, :schema)
+  defp has_schema?(opts) when is_map(opts), do: Map.has_key?(opts, :schema)
+  defp has_schema?(_opts), do: false
+
+  defp parse_opts(opts) when is_map(opts), do: parse_opts(Map.to_list(opts))
+
+  defp parse_opts(opts) when is_list(opts) do
+    case Zoi.parse(@opts_schema, opts) do
+      {:ok, parsed_opts} ->
+        {:ok, parsed_opts}
+
+      {:error, errors} ->
+        {:error, "invalid hparams mutation opts: #{inspect(Zoi.treefy_errors(errors))}"}
+    end
+  end
+
+  defp parse_opts(_opts), do: {:error, "invalid hparams mutation opts: expected keyword list or map"}
 end

@@ -88,8 +88,8 @@ defmodule Jido.Evolve.Evolvable.HParamsTest do
       assert is_map(hparams)
       assert Map.has_key?(hparams, :hidden_layers)
       assert is_list(hparams.hidden_layers)
-      assert length(hparams.hidden_layers) >= 1
-      assert length(hparams.hidden_layers) <= 3
+      assert Enum.count(hparams.hidden_layers) >= 1
+      assert Enum.count(hparams.hidden_layers) <= 3
 
       Enum.each(hparams.hidden_layers, fn val ->
         assert val >= 16
@@ -104,8 +104,8 @@ defmodule Jido.Evolve.Evolvable.HParamsTest do
       assert is_map(hparams)
       assert Map.has_key?(hparams, :hidden_layers)
       assert is_list(hparams.hidden_layers)
-      assert length(hparams.hidden_layers) >= 1
-      assert length(hparams.hidden_layers) <= 3
+      assert Enum.count(hparams.hidden_layers) >= 1
+      assert Enum.count(hparams.hidden_layers) <= 3
 
       Enum.each(hparams.hidden_layers, fn val ->
         assert val >= 16

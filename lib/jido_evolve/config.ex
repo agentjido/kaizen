@@ -7,6 +7,8 @@ defmodule Jido.Evolve.Config do
 
   import Bitwise
 
+  @termination_criteria_schema Zoi.list(Zoi.tuple({Zoi.atom(), Zoi.any()}))
+
   @schema Zoi.struct(
             __MODULE__,
             %{
@@ -19,13 +21,18 @@ defmodule Jido.Evolve.Config do
               selection_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Selection.Tournament),
               mutation_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Mutation.Text),
               crossover_strategy: Zoi.atom() |> Zoi.default(Jido.Evolve.Crossover.String),
-              termination_criteria: Zoi.any() |> Zoi.default([]),
+              termination_criteria: @termination_criteria_schema |> Zoi.default([]),
               checkpoint_interval: Zoi.integer() |> Zoi.min(1) |> Zoi.nullish(),
               metrics_enabled: Zoi.boolean() |> Zoi.default(true),
               random_seed: Zoi.integer() |> Zoi.nullish(),
               tournament_size: Zoi.integer() |> Zoi.min(1) |> Zoi.default(2),
               selection_pressure: Zoi.number() |> Zoi.min(0.0) |> Zoi.default(1.0),
-              evaluation_timeout: Zoi.any() |> Zoi.default(30_000)
+              evaluation_timeout:
+                Zoi.union([
+                  Zoi.integer() |> Zoi.min(1),
+                  Zoi.literal(:infinity)
+                ])
+                |> Zoi.default(30_000)
             },
             coerce: true
           )
@@ -58,7 +65,7 @@ defmodule Jido.Evolve.Config do
 
     case Zoi.parse(@schema, opts_map) do
       {:ok, config} ->
-        validate_custom(config)
+        {:ok, config}
 
       {:error, error} ->
         {:error, error}
@@ -109,29 +116,4 @@ defmodule Jido.Evolve.Config do
 
   defp normalize_opts(opts) when is_list(opts), do: Map.new(opts)
   defp normalize_opts(opts) when is_map(opts), do: opts
-
-  defp validate_custom(config) do
-    cond do
-      config.evaluation_timeout == :infinity ->
-        validate_termination_criteria(config)
-
-      is_integer(config.evaluation_timeout) and config.evaluation_timeout > 0 ->
-        validate_termination_criteria(config)
-
-      true ->
-        {:error,
-         %ArgumentError{
-           message:
-             "evaluation_timeout must be a positive integer or :infinity, got: #{inspect(config.evaluation_timeout)}"
-         }}
-    end
-  end
-
-  defp validate_termination_criteria(%__MODULE__{termination_criteria: criteria} = config) do
-    if is_list(criteria) and Keyword.keyword?(criteria) do
-      {:ok, config}
-    else
-      {:error, %ArgumentError{message: "termination_criteria must be a keyword list, got: #{inspect(criteria)}"}}
-    end
-  end
 end

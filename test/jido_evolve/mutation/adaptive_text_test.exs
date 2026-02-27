@@ -23,4 +23,9 @@ defmodule Jido.Evolve.Mutation.AdaptiveTextTest do
     assert AdaptiveText.mutation_strength(100) < 1.0
     assert AdaptiveText.mutation_strength(10_000) == 0.1
   end
+
+  test "returns error for invalid options" do
+    assert {:error, message} = AdaptiveText.mutate("hello", high_rate: 2.0)
+    assert message =~ "invalid adaptive text mutation opts"
+  end
 end

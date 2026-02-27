@@ -3,20 +3,12 @@ defmodule Jido.Evolve.OptionsTest do
 
   alias Jido.Evolve.{Config, Error, Options}
 
-  defmodule MissingEvaluateFitness do
-  end
-
-  defmodule InvalidMutationModule do
-    def nope, do: :ok
-  end
-
-  defmodule InvalidSelectionModule do
-    def nope, do: :ok
-  end
-
-  defmodule InvalidCrossoverModule do
-    def nope, do: :ok
-  end
+  alias TestOptions.{
+    InvalidCrossoverModule,
+    InvalidMutationModule,
+    InvalidSelectionModule,
+    MissingEvaluateFitness
+  }
 
   test "new/1 validates and normalizes minimal required options" do
     assert {:ok, opts} =
@@ -78,7 +70,7 @@ defmodule Jido.Evolve.OptionsTest do
   end
 
   test "new/1 returns invalid input error when fitness is not an atom module" do
-    assert {:error, %Error.InvalidInputError{message: "invalid evolve options"}} =
+    assert {:error, %Error.InvalidInputError{field: :fitness, message: "fitness must be a module"}} =
              Options.new(initial_population: ["a"], fitness: "not_a_module")
   end
 
